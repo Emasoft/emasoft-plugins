@@ -20,9 +20,14 @@ All notable changes to this project will be documented in this file.
 - Simplify corrupted index fix - just use --force flag, no manual deletion needed
 - Update all PSS documentation to reflect simplified reindex behavior
 
+### Features
+
+- Add git-cliff changelog automation and version sync
+
 ### Miscellaneous Tasks
 
 - Update claude-plugins-validation submodule
+- Update submodules with marketplace installation notes
 
 ### Refactor
 
