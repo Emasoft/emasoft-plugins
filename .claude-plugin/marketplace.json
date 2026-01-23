@@ -1,0 +1,48 @@
+{
+  "name": "emasoft-plugins",
+  "owner": {
+    "name": "Emasoft",
+    "email": "713559+Emasoft@users.noreply.github.com",
+    "url": "https://github.com/Emasoft"
+  },
+  "metadata": {
+    "description": "Emasoft's Claude Code plugins collection - high-quality productivity tools",
+    "version": "1.0.0"
+  },
+  "plugins": [
+    {
+      "name": "perfect-skill-suggester",
+      "source": "./perfect-skill-suggester",
+      "description": "High-accuracy skill activation (88%+) with AI-analyzed keywords, weighted scoring, synonym expansion, and three-tier confidence routing.",
+      "version": "1.1.0",
+      "author": {
+        "name": "Emasoft",
+        "email": "713559+Emasoft@users.noreply.github.com",
+        "url": "https://github.com/Emasoft"
+      },
+      "homepage": "https://github.com/Emasoft/perfect-skill-suggester",
+      "repository": "https://github.com/Emasoft/perfect-skill-suggester",
+      "license": "MIT",
+      "keywords": [
+        "skills",
+        "activation",
+        "rust",
+        "ai",
+        "claude-code",
+        "hooks",
+        "performance",
+        "ml"
+      ],
+      "category": "workflow",
+      "strict": false,
+      "commands": [
+        "./commands/pss-reindex-skills.md",
+        "./commands/pss-status.md"
+      ],
+      "skills": [
+        "./skills/pss-usage"
+      ],
+      "agents": []
+    }
+  ]
+}
