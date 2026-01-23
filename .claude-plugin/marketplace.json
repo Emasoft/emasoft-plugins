@@ -46,7 +46,10 @@
     },
     {
       "name": "claude-plugins-validation",
-      "source": "./claude-plugins-validation",
+      "source": {
+        "type": "git",
+        "repository": "https://github.com/Emasoft/claude-plugins-validation"
+      },
       "description": "Comprehensive validation suite for Claude Code plugins, marketplaces, hooks, skills, and MCP servers. Includes 5 Python validators, an expert agent, and detailed skill documentation.",
       "version": "1.0.0",
       "author": {
@@ -54,8 +57,8 @@
         "email": "713559+Emasoft@users.noreply.github.com",
         "url": "https://github.com/Emasoft"
       },
-      "homepage": "https://github.com/Emasoft/emasoft-plugins-marketplace",
-      "repository": "https://github.com/Emasoft/emasoft-plugins-marketplace",
+      "homepage": "https://github.com/Emasoft/claude-plugins-validation",
+      "repository": "https://github.com/Emasoft/claude-plugins-validation",
       "license": "MIT",
       "keywords": [
         "validation",
