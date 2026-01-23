@@ -17,7 +17,7 @@
         "repository": "https://github.com/Emasoft/perfect-skill-suggester"
       },
       "description": "High-accuracy skill activation (88%+) with AI-analyzed keywords, weighted scoring, synonym expansion, and three-tier confidence routing.",
-      "version": "1.1.1",
+      "version": "1.0.0",
       "author": {
         "name": "Emasoft",
         "email": "713559+Emasoft@users.noreply.github.com",

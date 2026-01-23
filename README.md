@@ -7,7 +7,7 @@ A collection of high-quality Claude Code plugins focused on productivity and wor
 
 | Plugin | Version | Description |
 |--------|---------|-------------|
-| perfect-skill-suggester | 1.1.1 | High-accuracy skill activation (88%+) with AI-analyzed keywords |
+| perfect-skill-suggester | 1.0.0 | High-accuracy skill activation (88%+) with AI-analyzed keywords |
 | claude-plugins-validation | 1.0.0 | Comprehensive validation suite for plugins, marketplaces, hooks, skills, and MCP |
 
 *Last updated: 2026-01-23*
@@ -43,7 +43,7 @@ claude plugin list
 You should see:
 ```
 ❯ perfect-skill-suggester@emasoft-plugins
-  Version: 1.1.1
+  Version: 1.0.0
   Scope: user
   Status: ✔ enabled
 ```
@@ -295,9 +295,60 @@ This section is for contributors who want to develop or modify the plugins.
 
 ### Clone the Repository
 
+**Important:** Use `--recursive` to also fetch plugin submodules:
+
 ```bash
-git clone https://github.com/Emasoft/emasoft-plugins.git
+git clone --recursive https://github.com/Emasoft/emasoft-plugins.git
 cd emasoft-plugins
+```
+
+If you already cloned without `--recursive`, initialize submodules:
+
+```bash
+git submodule update --init --recursive
+```
+
+### Setup Git Hooks
+
+After cloning, set up git-cliff changelog generation and version sync hooks:
+
+```bash
+./scripts/setup-hooks.sh
+```
+
+This installs the following hooks:
+
+| Repository | Hook | Purpose |
+|------------|------|---------|
+| Main marketplace | `pre-commit` | Syncs plugin versions from submodules to marketplace.json |
+| Main marketplace | `post-commit` | Regenerates CHANGELOG.md with git-cliff |
+| Each submodule | `post-commit` | Regenerates CHANGELOG.md with git-cliff |
+
+**Requirements:** Install [git-cliff](https://git-cliff.org/) for changelog generation:
+
+```bash
+# macOS
+brew install git-cliff
+
+# Or via cargo
+cargo install git-cliff
+```
+
+### Version Sync
+
+When you bump a plugin's version in its submodule, the pre-commit hook automatically updates marketplace.json. The version is read from (in order of priority):
+1. `.claude-plugin/plugin.json`
+2. `pyproject.toml`
+3. `package.json`
+
+You can also run the sync manually:
+
+```bash
+# Check for version mismatches
+python scripts/sync-versions.py --check --verbose
+
+# Update marketplace.json with submodule versions
+python scripts/sync-versions.py --verbose
 ```
 
 ### Local Testing
