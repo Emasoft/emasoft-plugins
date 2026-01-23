@@ -10,6 +10,7 @@ All notable changes to this project will be documented in this file.
 - Remove private development paths from README
 - Sync simplified plugin.json to fix uninstall issue
 - Remove plugin.json from plugin source (strict: false)
+- **marketplace:** Use local path strings for source field
 
 ### Documentation
 
