@@ -101,7 +101,7 @@ allowed-tools: ["Bash", "Read"]
 ---
 name: pss-reindex-skills
 description: "Scan ALL skills and generate AI-analyzed..."
-argument-hint: "[--force] [--skill SKILL_NAME] [--batch-size N]"
+argument-hint: "[--skill SKILL_NAME] [--batch-size N]"
 allowed-tools: ["Bash", "Read", "Write", "Glob", "Grep", "Task"]
 ---
 ```

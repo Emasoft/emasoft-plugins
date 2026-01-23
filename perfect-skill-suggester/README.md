@@ -243,15 +243,14 @@ Just type your requests naturally. PSS will suggest relevant skills based on wei
 
 ### /pss-reindex-skills
 
-Generate AI-analyzed keyword index for all skills.
+Regenerate the AI-analyzed keyword index for all skills. This command always starts fresh, regenerating everything from scratch to ensure a complete and accurate index.
 
 ```
-/pss-reindex-skills [--force] [--skill SKILL_NAME] [--batch-size N]
+/pss-reindex-skills [--skill SKILL_NAME] [--batch-size N]
 ```
 
 | Flag | Description |
 |------|-------------|
-| `--force` | Force reindex even if cache is fresh |
 | `--skill NAME` | Only reindex specific skill |
 | `--batch-size N` | Skills per batch (default: 10) |
 
@@ -453,7 +452,7 @@ ls -la ~/.claude/cache/skill-index.json
 **Solutions:**
 1. Check file exists: `ls -la ~/.claude/cache/skill-index.json`
 2. Check permissions: `chmod 644 ~/.claude/cache/skill-index.json`
-3. Regenerate index: `/pss-reindex-skills --force`
+3. Regenerate index: `/pss-reindex-skills`
 
 ### "Failed to parse skill index" error
 
@@ -463,7 +462,7 @@ ls -la ~/.claude/cache/skill-index.json
 
 **Solution:** Regenerate the index (it will overwrite the corrupted file):
 ```
-/pss-reindex-skills --force
+/pss-reindex-skills
 ```
 
 ### Index exists but skills not matching
@@ -476,9 +475,9 @@ ls -la ~/.claude/cache/skill-index.json
 - Scoring threshold too high
 
 **Solutions:**
-1. Force reindex to pick up new skills:
+1. Reindex to pick up new skills:
    ```
-   /pss-reindex-skills --force
+   /pss-reindex-skills
    ```
 2. Test matching with verbose output:
    ```

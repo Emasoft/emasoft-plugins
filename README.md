@@ -190,7 +190,7 @@ claude plugin enable perfect-skill-suggester
 **Solutions:**
 1. Check file exists: `ls -la ~/.claude/cache/skill-index.json`
 2. Check permissions: `chmod 644 ~/.claude/cache/skill-index.json`
-3. Regenerate index: `/pss-reindex-skills --force`
+3. Regenerate index: `/pss-reindex-skills`
 
 ### "Failed to parse skill index" error
 
@@ -200,7 +200,7 @@ claude plugin enable perfect-skill-suggester
 
 **Solution:** Regenerate the index (it will overwrite the corrupted file):
 ```
-/pss-reindex-skills --force
+/pss-reindex-skills
 ```
 
 ---

@@ -400,11 +400,9 @@ if (pss.metadata.skill_hash !== sha256(readFile("SKILL.md"))) {
 The existing PSS command can generate `.pss` files:
 
 ```bash
-# Generate .pss files for all skills without them
+# Generate/regenerate .pss files for all skills
+# (always regenerates from scratch, overwriting existing files)
 /pss-reindex-skills --generate-pss
-
-# Regenerate all .pss files
-/pss-reindex-skills --generate-pss --force
 ```
 
 ### 8.2 Manual Creation

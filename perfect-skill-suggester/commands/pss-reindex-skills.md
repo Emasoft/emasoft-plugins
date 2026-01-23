@@ -1,7 +1,7 @@
 ---
 name: pss-reindex-skills
 description: "Scan ALL skills and generate AI-analyzed keyword/phrase index for skill activation."
-argument-hint: "[--force] [--skill SKILL_NAME] [--batch-size N]"
+argument-hint: "[--skill SKILL_NAME] [--batch-size N]"
 allowed-tools: ["Bash", "Read", "Write", "Glob", "Grep", "Task"]
 ---
 
@@ -43,18 +43,19 @@ For EACH skill, a dedicated agent:
 
 ## Usage
 
+This command ALWAYS regenerates the skill index from scratch. There is no caching or incremental updates - every run performs a complete reindex to ensure accuracy and avoid incomplete data.
+
 ```
-/pss-reindex-skills [--force] [--skill SKILL_NAME] [--batch-size 20] [--pass1-only] [--pass2-only] [--all-projects]
+/pss-reindex-skills [--skill SKILL_NAME] [--batch-size 20] [--pass1-only] [--pass2-only] [--all-projects]
 ```
 
 | Flag | Description |
 |------|-------------|
-| `--force` | Force full reindex even if cache is fresh |
 | `--skill NAME` | Reindex only the specified skill |
 | `--batch-size N` | Skills per batch (default: 10) |
 | `--pass1-only` | Run Pass 1 only (keywords, no co-usage) |
 | `--pass2-only` | Run Pass 2 only (requires existing Pass 1 index) |
-| `--all-projects` | **NEW:** Scan ALL projects registered in `~/.claude.json` |
+| `--all-projects` | Scan ALL projects registered in `~/.claude.json` |
 
 ## Comprehensive Skill Discovery
 
@@ -680,15 +681,14 @@ Each subagent:
 3. Generates optimal activation patterns
 4. Returns JSON result
 
-## Cache Management
+## Reindex Behavior
+
+This command ALWAYS performs a full reindex from scratch, overwriting any existing index. There is no caching, no staleness checks, and no incremental updates - this ensures the index is always complete and accurate.
 
 | Condition | Action |
 |-----------|--------|
-| No cache exists | Full reindex |
-| Cache > 24 hours old | Full reindex |
-| `--force` flag | Full reindex |
+| Any run | Full reindex (always) |
 | `--skill NAME` | Reindex only that skill |
-| Cache fresh | Skip (show message) |
 
 ## Example Output
 
