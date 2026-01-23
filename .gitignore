@@ -30,3 +30,4 @@ Thumbs.db
 *.so
 *.dylib
 *.dll
+.venv/
