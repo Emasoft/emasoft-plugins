@@ -17,27 +17,158 @@ A collection of high-quality Claude Code plugins focused on productivity and wor
 
 ## Installation
 
-### 1. Add Marketplace
+### Step 1: Add Marketplace
 
 ```bash
 claude plugin marketplace add https://github.com/Emasoft/emasoft-plugins
 ```
 
-### 2. Install Plugin
+### Step 2: Install Plugin
 
 ```bash
 claude plugin install perfect-skill-suggester@emasoft-plugins
 ```
 
-### 3. Verify Installation
+### Step 3: Verify Installation
 
 ```bash
 claude plugin list
 ```
 
-### 4. Restart Claude Code
+You should see:
+```
+❯ perfect-skill-suggester@emasoft-plugins
+  Version: 1.1.1
+  Scope: user
+  Status: ✔ enabled
+```
 
-After installation, restart Claude Code for the plugin to take effect.
+### Step 4: Restart Claude Code
+
+**Important:** After installation, you must restart Claude Code for the plugin to take effect.
+
+---
+
+## Update to Latest Version
+
+When a new version is released, follow these steps:
+
+### Step 1: Update Marketplace Cache
+
+```bash
+claude plugin marketplace update emasoft-plugins
+```
+
+### Step 2: Uninstall Current Version
+
+```bash
+claude plugin uninstall perfect-skill-suggester
+```
+
+### Step 3: Install Latest Version
+
+```bash
+claude plugin install perfect-skill-suggester@emasoft-plugins
+```
+
+### Step 4: Restart Claude Code
+
+Restart Claude Code to load the updated plugin.
+
+---
+
+## Reinstall (Fix Broken Installation)
+
+If the plugin is not working correctly, perform a clean reinstall:
+
+### Step 1: Uninstall
+
+```bash
+claude plugin uninstall perfect-skill-suggester
+```
+
+### Step 2: Update Marketplace Cache
+
+```bash
+claude plugin marketplace update emasoft-plugins
+```
+
+### Step 3: Reinstall
+
+```bash
+claude plugin install perfect-skill-suggester@emasoft-plugins
+```
+
+### Step 4: Restart Claude Code
+
+Restart Claude Code to load the freshly installed plugin.
+
+---
+
+## Uninstall
+
+To completely remove the plugin:
+
+### Step 1: Uninstall Plugin
+
+```bash
+claude plugin uninstall perfect-skill-suggester
+```
+
+### Step 2: (Optional) Remove Marketplace
+
+If you no longer want plugins from this marketplace:
+
+```bash
+claude plugin marketplace remove emasoft-plugins
+```
+
+### Step 3: Restart Claude Code
+
+Restart Claude Code to complete the removal.
+
+---
+
+## Troubleshooting
+
+### Commands not found after installation
+
+**Symptom:** Plugin shows as installed and enabled, but `/pss-reindex-skills` or `/pss-status` commands are not found.
+
+**Solution:** Restart Claude Code. Plugins only load their commands on startup.
+
+### Plugin install fails
+
+**Symptom:** `claude plugin install` returns an error.
+
+**Solutions:**
+1. Update the marketplace cache first:
+   ```bash
+   claude plugin marketplace update emasoft-plugins
+   ```
+2. Try reinstalling the marketplace:
+   ```bash
+   claude plugin marketplace remove emasoft-plugins
+   claude plugin marketplace add https://github.com/Emasoft/emasoft-plugins
+   ```
+
+### Plugin shows as disabled
+
+**Symptom:** Plugin is installed but status shows `✘ disabled`.
+
+**Solution:** Enable the plugin:
+```bash
+claude plugin enable perfect-skill-suggester
+```
+
+### Hook not triggering
+
+**Symptom:** Plugin is installed and enabled, but skill suggestions don't appear.
+
+**Solutions:**
+1. Verify the plugin is enabled: `claude plugin list`
+2. Check hooks are registered: `/hooks` (inside Claude Code)
+3. Restart Claude Code
 
 ---
 
