@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [Unreleased]
+
+### Features
+
+- Multi-language validation with linter auto-install
+
 ## [1.1.0] - 2026-01-23
 
 ### Bug Fixes

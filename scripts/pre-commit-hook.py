@@ -20,7 +20,6 @@ import subprocess
 import sys
 from pathlib import Path
 
-
 # ANSI Colors
 RED = "\033[0;31m"
 GREEN = "\033[0;32m"

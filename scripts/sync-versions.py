@@ -44,7 +44,7 @@ def get_plugin_version(plugin_dir: Path) -> str | None:
                 version = data.get("version")
                 if version:
                     return version
-        except (json.JSONDecodeError, IOError):
+        except (OSError, json.JSONDecodeError):
             pass
 
     # Try pyproject.toml (Python projects)
@@ -57,7 +57,7 @@ def get_plugin_version(plugin_dir: Path) -> str | None:
                 match = re.search(r'^\s*version\s*=\s*["\']([^"\']+)["\']', content, re.MULTILINE)
                 if match:
                     return match.group(1)
-        except IOError:
+        except OSError:
             pass
 
     # Try package.json (Node.js projects)
@@ -69,7 +69,7 @@ def get_plugin_version(plugin_dir: Path) -> str | None:
                 version = data.get("version")
                 if version:
                     return version
-        except (json.JSONDecodeError, IOError):
+        except (OSError, json.JSONDecodeError):
             pass
 
     return None
@@ -80,7 +80,7 @@ def load_marketplace(marketplace_path: Path) -> dict | None:
     try:
         with open(marketplace_path, encoding="utf-8") as f:
             return json.load(f)
-    except (json.JSONDecodeError, IOError) as e:
+    except (OSError, json.JSONDecodeError) as e:
         print(f"Error loading marketplace.json: {e}", file=sys.stderr)
         return None
 
@@ -92,7 +92,7 @@ def save_marketplace(marketplace_path: Path, data: dict) -> bool:
             json.dump(data, f, indent=2)
             f.write("\n")
         return True
-    except IOError as e:
+    except OSError as e:
         print(f"Error saving marketplace.json: {e}", file=sys.stderr)
         return False
 

@@ -7,8 +7,8 @@ A collection of high-quality Claude Code plugins focused on productivity and wor
 
 | Plugin | Version | Description |
 |--------|---------|-------------|
-| perfect-skill-suggester | 1.0.0 | High-accuracy skill activation (88%+) with AI-analyzed keywords |
-| claude-plugins-validation | 1.0.0 | Comprehensive validation suite for plugins, marketplaces, hooks, skills, and MCP |
+| perfect-skill-suggester | 1.1.0 | High-accuracy skill activation (88%+) with AI-analyzed keywords |
+| claude-plugins-validation | 1.1.0 | Comprehensive validation suite with multi-language linter/dependency support |
 
 *Last updated: 2026-01-23*
 
@@ -260,7 +260,19 @@ Comprehensive validation suite for Claude Code plugins, marketplaces, hooks, ski
 - Complete skill with 5 reference documents
 - GitHub marketplace deployment validation
 - Links to 45+ official Anthropic documentation URLs
-- Supports ruff/mypy/shellcheck linting integration
+- **Multi-language linter auto-installation** (8 languages supported)
+- **Multi-language dependency verification**
+
+**Supported Languages:**
+| Language | Linters |
+|----------|---------|
+| Python | ruff, mypy |
+| JavaScript/TypeScript | eslint, typescript |
+| Rust | clippy, rustfmt |
+| Go | staticcheck, golangci-lint |
+| Shell/Bash | shellcheck |
+| PowerShell | PSScriptAnalyzer |
+| Ruby | rubocop |
 
 **Validators:**
 - `validate_plugin.py` - Full plugin structure validation

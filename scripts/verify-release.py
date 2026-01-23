@@ -14,7 +14,6 @@ import subprocess
 import sys
 from pathlib import Path
 
-
 # ANSI Colors
 RED = "\033[0;31m"
 GREEN = "\033[0;32m"
@@ -339,14 +338,13 @@ def main() -> int:
         print(f"{RED}VERIFICATION FAILED{NC}")
         print("Please fix the failed checks before releasing.")
         return 1
-    elif results.warnings > 0:
+    if results.warnings > 0:
         print(f"{YELLOW}VERIFICATION PASSED WITH WARNINGS{NC}")
         print("Consider addressing warnings before releasing.")
         return 0
-    else:
-        print(f"{GREEN}VERIFICATION PASSED{NC}")
-        print("Ready for release!")
-        return 0
+    print(f"{GREEN}VERIFICATION PASSED{NC}")
+    print("Ready for release!")
+    return 0
 
 
 if __name__ == "__main__":

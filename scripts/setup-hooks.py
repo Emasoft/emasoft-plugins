@@ -13,7 +13,6 @@ import stat
 import sys
 from pathlib import Path
 
-
 # ANSI Colors
 GREEN = "\033[0;32m"
 YELLOW = "\033[1;33m"
@@ -79,7 +78,8 @@ def main() -> int:
     result = subprocess.run(
         ["git", "rev-parse", "--show-toplevel"],
         capture_output=True,
-        text=True
+        text=True,
+        timeout=30,
     )
     repo_root = Path(result.stdout.strip())
 
@@ -88,14 +88,15 @@ def main() -> int:
         print("Warning: cliff.toml not found, skipping changelog generation")
         return 0
 
-    name = "''' + (submodule_name or "main repo") + '''"
+    name = "''' + (submodule_name or "main repo") + """"
     print(f"Generating CHANGELOG.md for {name}...")
 
     result = subprocess.run(
         ["git-cliff", "-o", "CHANGELOG.md"],
         cwd=repo_root,
         capture_output=True,
-        text=True
+        text=True,
+        timeout=60,
     )
 
     if result.returncode != 0:
@@ -106,7 +107,8 @@ def main() -> int:
     status = subprocess.run(
         ["git", "diff", "--quiet", "CHANGELOG.md"],
         cwd=repo_root,
-        capture_output=True
+        capture_output=True,
+        timeout=30,
     )
 
     if status.returncode != 0:
@@ -119,7 +121,7 @@ def main() -> int:
 
 if __name__ == "__main__":
     sys.exit(main())
-'''
+"""
 
     target = hooks_dir / "post-commit"
     target.write_text(hook_content)
