@@ -198,11 +198,10 @@ claude plugin enable perfect-skill-suggester
 
 **Cause:** The skill index JSON file is corrupted or malformed.
 
-**Solution:** Delete and regenerate the index:
-```bash
-rm ~/.claude/cache/skill-index.json
+**Solution:** Regenerate the index (it will overwrite the corrupted file):
 ```
-Then run `/pss-reindex-skills` inside Claude Code.
+/pss-reindex-skills --force
+```
 
 ---
 
