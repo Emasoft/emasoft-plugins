@@ -9,12 +9,21 @@ This script validates:
 5. Version consistency
 6. Sensitive data patterns
 
+IMPORTANT: This hook is SKIPPED during:
+- git rebase (interactive or not)
+- git cherry-pick
+- git merge (during conflict resolution)
+- git am (applying patches)
+
+This prevents validation errors during history rewriting operations.
+
 To install as git hook:
     cp scripts/pre-commit-hook.py .git/hooks/pre-commit
     chmod +x .git/hooks/pre-commit
 """
 
 import json
+import os
 import re
 import subprocess
 import sys
@@ -24,7 +33,50 @@ from pathlib import Path
 RED = "\033[0;31m"
 GREEN = "\033[0;32m"
 YELLOW = "\033[1;33m"
+BLUE = "\033[0;34m"
 NC = "\033[0m"
+
+
+def is_rebase_in_progress(git_dir: Path) -> bool:
+    """Check if we're in the middle of a rebase or other history-rewriting operation.
+
+    During rebase/cherry-pick/merge, commits are being replayed and we should
+    skip validation to avoid conflicts and slowdowns.
+    """
+    # Check for rebase indicators
+    rebase_indicators = [
+        git_dir / "rebase-merge",      # git rebase (interactive)
+        git_dir / "rebase-apply",       # git rebase (non-interactive) / git am
+        git_dir / "CHERRY_PICK_HEAD",   # git cherry-pick
+        git_dir / "MERGE_HEAD",         # git merge in progress
+        git_dir / "BISECT_LOG",         # git bisect
+    ]
+
+    for indicator in rebase_indicators:
+        if indicator.exists():
+            return True
+
+    # Also check environment variable (some git operations set this)
+    if os.environ.get("GIT_AUTHOR_DATE"):
+        # During rebase, git sets GIT_AUTHOR_DATE to preserve original timestamps
+        # This is a secondary indicator
+        pass  # Not conclusive on its own
+
+    return False
+
+
+def get_git_dir() -> Path:
+    """Get the .git directory path (handles both regular repos and submodules)."""
+    result = subprocess.run(
+        ["git", "rev-parse", "--git-dir"],
+        capture_output=True,
+        text=True,
+        timeout=10
+    )
+    if result.returncode == 0:
+        return Path(result.stdout.strip()).resolve()
+    # Fallback
+    return Path(".git")
 
 
 def run_command(cmd: list[str], cwd: Path | None = None) -> tuple[int, str, str]:
@@ -186,6 +238,13 @@ def check_sensitive_data(diff: str) -> bool:
 
 def main() -> int:
     """Main pre-commit hook function."""
+    # Get git directory and check for rebase
+    git_dir = get_git_dir()
+
+    if is_rebase_in_progress(git_dir):
+        print(f"{BLUE}[pre-commit] Skipping validation during rebase/cherry-pick/merge{NC}")
+        return 0  # Allow commit to proceed without validation
+
     repo_root = Path(subprocess.run(
         ["git", "rev-parse", "--show-toplevel"],
         capture_output=True, text=True

@@ -1,7 +1,22 @@
 #!/usr/bin/env python3
 """setup-hooks.py - Install git hooks for marketplace and all submodules.
 
-Run this after cloning to set up all git hooks.
+NEW ARCHITECTURE (v2):
+======================
+Problem: post-commit hooks fire on EVERY commit during rebase, causing
+CHANGELOG.md to be regenerated mid-rebase, which causes conflicts.
+
+Solution:
+1. Remove post-commit hook entirely
+2. Use post-rewrite hook (fires ONCE after rebase/amend completes)
+3. Add rebase detection to pre-commit hook (skip during rebase)
+4. Make changelog generation part of release workflow
+
+Hook Summary:
+- pre-commit: Lint, validate, version sync (skips during rebase)
+- pre-push: Full validation, blocks broken plugins
+- post-rewrite: Regenerate changelog after rebase/amend (fires once)
+- post-merge: Regenerate changelog after merge
 
 Usage:
     python scripts/setup-hooks.py
@@ -17,6 +32,7 @@ from pathlib import Path
 GREEN = "\033[0;32m"
 YELLOW = "\033[1;33m"
 RED = "\033[0;31m"
+BLUE = "\033[0;34m"
 NC = "\033[0m"
 
 
@@ -32,37 +48,50 @@ def make_executable(path: Path) -> None:
 
 
 def create_pre_commit_hook(hooks_dir: Path, repo_root: Path) -> None:
-    """Create pre-commit hook for main repo."""
-    # Copy the Python pre-commit hook
+    """Create pre-commit hook for main repo with rebase detection."""
     source = repo_root / "scripts" / "pre-commit-hook.py"
     target = hooks_dir / "pre-commit"
 
     if source.exists():
         shutil.copy2(source, target)
         make_executable(target)
-        print(f"{GREEN}✓{NC} Created main repo pre-commit hook (Python)")
+        print(f"{GREEN}✓{NC} Created pre-commit hook")
     else:
         print(f"{YELLOW}⚠{NC} pre-commit-hook.py not found, skipping")
 
 
 def create_pre_push_hook(hooks_dir: Path, repo_root: Path) -> None:
-    """Create pre-push hook for main repo to block broken plugins."""
-    # Copy the Python pre-push hook
+    """Create pre-push hook for main repo."""
     source = repo_root / "scripts" / "pre-push-hook.py"
     target = hooks_dir / "pre-push"
 
     if source.exists():
         shutil.copy2(source, target)
         make_executable(target)
-        print(f"{GREEN}✓{NC} Created main repo pre-push hook (Python)")
+        print(f"{GREEN}✓{NC} Created pre-push hook")
     else:
         print(f"{YELLOW}⚠{NC} pre-push-hook.py not found, skipping")
 
 
-def create_post_commit_hook(hooks_dir: Path, submodule_name: str | None = None) -> None:
-    """Create post-commit hook for changelog generation."""
-    hook_content = '''#!/usr/bin/env python3
-"""post-commit hook: Update CHANGELOG.md using git-cliff."""
+def create_post_rewrite_hook(hooks_dir: Path, repo_name: str = "main repo") -> None:
+    """Create post-rewrite hook for changelog generation after rebase/amend.
+
+    post-rewrite fires ONCE after:
+    - git rebase completes (all commits replayed)
+    - git commit --amend completes
+
+    This avoids the mid-rebase CHANGELOG conflicts.
+    """
+    hook_content = f'''#!/usr/bin/env python3
+"""post-rewrite hook: Update CHANGELOG.md after rebase/amend completes.
+
+This hook fires ONCE after rebase or amend operations complete,
+avoiding the mid-rebase conflicts that post-commit causes.
+
+Arguments passed by git:
+- $1: "rebase" or "amend"
+- stdin: list of rewritten commits (old-sha new-sha)
+"""
 
 import shutil
 import subprocess
@@ -71,9 +100,10 @@ from pathlib import Path
 
 
 def main() -> int:
+    operation = sys.argv[1] if len(sys.argv) > 1 else "unknown"
+
     if not shutil.which("git-cliff"):
-        print("Warning: git-cliff not found, skipping changelog generation")
-        return 0
+        return 0  # Silent skip if git-cliff not installed
 
     result = subprocess.run(
         ["git", "rev-parse", "--show-toplevel"],
@@ -85,11 +115,9 @@ def main() -> int:
 
     cliff_toml = repo_root / "cliff.toml"
     if not cliff_toml.exists():
-        print("Warning: cliff.toml not found, skipping changelog generation")
-        return 0
+        return 0  # Silent skip if no cliff.toml
 
-    name = "''' + (submodule_name or "main repo") + """"
-    print(f"Generating CHANGELOG.md for {name}...")
+    print(f"[post-rewrite] Regenerating CHANGELOG.md after {{operation}}...")
 
     result = subprocess.run(
         ["git-cliff", "-o", "CHANGELOG.md"],
@@ -100,7 +128,7 @@ def main() -> int:
     )
 
     if result.returncode != 0:
-        print(f"Warning: git-cliff failed: {result.stderr}")
+        print(f"Warning: git-cliff failed: {{result.stderr}}")
         return 0
 
     # Check if changelog changed
@@ -113,22 +141,90 @@ def main() -> int:
 
     if status.returncode != 0:
         print("CHANGELOG.md updated - remember to commit it!")
-    else:
-        print("CHANGELOG.md is up to date")
 
     return 0
 
 
 if __name__ == "__main__":
     sys.exit(main())
-"""
+'''
 
-    target = hooks_dir / "post-commit"
+    target = hooks_dir / "post-rewrite"
     target.write_text(hook_content)
     make_executable(target)
+    print(f"{GREEN}✓{NC} Created post-rewrite hook ({repo_name})")
 
-    label = submodule_name or "main repo"
-    print(f"{GREEN}✓{NC} Created {label} post-commit hook")
+
+def create_post_merge_hook(hooks_dir: Path, repo_name: str = "main repo") -> None:
+    """Create post-merge hook for changelog generation after merge."""
+    hook_content = f'''#!/usr/bin/env python3
+"""post-merge hook: Update CHANGELOG.md after merge completes."""
+
+import shutil
+import subprocess
+import sys
+from pathlib import Path
+
+
+def main() -> int:
+    if not shutil.which("git-cliff"):
+        return 0
+
+    result = subprocess.run(
+        ["git", "rev-parse", "--show-toplevel"],
+        capture_output=True,
+        text=True,
+        timeout=30,
+    )
+    repo_root = Path(result.stdout.strip())
+
+    cliff_toml = repo_root / "cliff.toml"
+    if not cliff_toml.exists():
+        return 0
+
+    print("[post-merge] Regenerating CHANGELOG.md...")
+
+    result = subprocess.run(
+        ["git-cliff", "-o", "CHANGELOG.md"],
+        cwd=repo_root,
+        capture_output=True,
+        text=True,
+        timeout=60,
+    )
+
+    if result.returncode != 0:
+        print(f"Warning: git-cliff failed: {{result.stderr}}")
+        return 0
+
+    status = subprocess.run(
+        ["git", "diff", "--quiet", "CHANGELOG.md"],
+        cwd=repo_root,
+        capture_output=True,
+        timeout=30,
+    )
+
+    if status.returncode != 0:
+        print("CHANGELOG.md updated - remember to commit it!")
+
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
+'''
+
+    target = hooks_dir / "post-merge"
+    target.write_text(hook_content)
+    make_executable(target)
+    print(f"{GREEN}✓{NC} Created post-merge hook ({repo_name})")
+
+
+def remove_old_post_commit_hook(hooks_dir: Path, repo_name: str = "main repo") -> None:
+    """Remove the old post-commit hook that caused rebase conflicts."""
+    post_commit = hooks_dir / "post-commit"
+    if post_commit.exists():
+        post_commit.unlink()
+        print(f"{YELLOW}→{NC} Removed old post-commit hook ({repo_name})")
 
 
 def setup_submodule_hooks(submodule_name: str, repo_root: Path) -> bool:
@@ -139,7 +235,13 @@ def setup_submodule_hooks(submodule_name: str, repo_root: Path) -> bool:
         print(f"{RED}✗{NC} Submodule {submodule_name} not found or not initialized")
         return False
 
-    create_post_commit_hook(hooks_dir, submodule_name)
+    # Remove old problematic post-commit hook
+    remove_old_post_commit_hook(hooks_dir, submodule_name)
+
+    # Install new hooks
+    create_post_rewrite_hook(hooks_dir, submodule_name)
+    create_post_merge_hook(hooks_dir, submodule_name)
+
     return True
 
 
@@ -148,47 +250,64 @@ def main() -> int:
     script_dir = Path(__file__).parent
     repo_root = script_dir.parent
 
-    print("Setting up git hooks for emasoft-plugins-marketplace...")
+    print(f"{BLUE}{'=' * 60}{NC}")
+    print(f"{BLUE}Git Hooks Setup v2 - Rebase-Safe Architecture{NC}")
+    print(f"{BLUE}{'=' * 60}{NC}")
     print(f"Repository root: {repo_root}")
     print()
 
     # Check dependencies
     if not check_git_cliff():
-        print(f"{YELLOW}Warning:{NC} git-cliff is not installed. Install it with: brew install git-cliff")
+        print(f"{YELLOW}Warning:{NC} git-cliff not installed. Install: brew install git-cliff")
     print()
 
     # Main repository hooks
-    print("=" * 60)
-    print("Main repository hooks")
-    print("=" * 60)
+    print(f"{BLUE}Main repository hooks{NC}")
+    print("-" * 40)
 
     main_hooks_dir = repo_root / ".git" / "hooks"
     main_hooks_dir.mkdir(parents=True, exist_ok=True)
 
+    # Remove old post-commit hook
+    remove_old_post_commit_hook(main_hooks_dir, "main repo")
+
+    # Install new hooks
     create_pre_commit_hook(main_hooks_dir, repo_root)
     create_pre_push_hook(main_hooks_dir, repo_root)
-    create_post_commit_hook(main_hooks_dir)
+    create_post_rewrite_hook(main_hooks_dir, "main repo")
+    create_post_merge_hook(main_hooks_dir, "main repo")
 
     # Submodule hooks
     print()
-    print("=" * 60)
-    print("Submodule hooks")
-    print("=" * 60)
+    print(f"{BLUE}Submodule hooks{NC}")
+    print("-" * 40)
 
     setup_submodule_hooks("perfect-skill-suggester", repo_root)
     setup_submodule_hooks("claude-plugins-validation", repo_root)
 
     # Summary
     print()
-    print("All git hooks have been set up successfully!")
+    print(f"{GREEN}{'=' * 60}{NC}")
+    print(f"{GREEN}All git hooks installed successfully!{NC}")
+    print(f"{GREEN}{'=' * 60}{NC}")
     print()
-    print("Hook summary:")
+    print("Hook architecture (v2 - rebase-safe):")
+    print()
     print("  Main repo:")
-    print("    - pre-commit: Validates and syncs plugin versions (Python)")
-    print("    - pre-push: Blocks pushing broken plugins to GitHub (Python)")
-    print("    - post-commit: Generates CHANGELOG.md with git-cliff (Python)")
+    print("    pre-commit    → Lint, validate, version sync (skips during rebase)")
+    print("    pre-push      → Full validation, blocks broken plugins")
+    print("    post-rewrite  → Changelog after rebase/amend (fires ONCE)")
+    print("    post-merge    → Changelog after merge")
+    print()
     print("  Submodules:")
-    print("    - post-commit: Generates CHANGELOG.md with git-cliff (Python)")
+    print("    post-rewrite  → Changelog after rebase/amend (fires ONCE)")
+    print("    post-merge    → Changelog after merge")
+    print()
+    print(f"{YELLOW}NOTE:{NC} post-commit hooks removed to prevent rebase conflicts.")
+    print(f"      Changelog is now generated only after rebase/amend/merge completes.")
+    print()
+    print("Manual changelog generation:")
+    print("    python scripts/generate-changelog.py [--all]")
 
     return 0
 
