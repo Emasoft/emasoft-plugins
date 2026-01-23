@@ -82,10 +82,10 @@ This creates a **superset index** containing ALL skills across all your projects
 Run the discovery script with `--checklist` and `--all-projects` to generate a markdown checklist with batches:
 
 ```bash
-python3 ${CLAUDE_PLUGIN_ROOT}/scripts/pss_discover_skills.py --checklist --batch-size 10 --all-projects --generate-pss
+python3 ${CLAUDE_PLUGIN_ROOT}/scripts/pss_discover_skills.py --checklist --batch-size 10 --all-projects
 ```
 
-The `--generate-pss` flag creates a `.pss` metadata file for each discovered skill in the same directory as its `SKILL.md`. This enables faster Pass 1/2 processing and incremental updates.
+The reindex command ALWAYS generates `.pss` metadata files for each discovered skill (in the same directory as its `SKILL.md`). These files are regenerated from scratch on every reindex to ensure accuracy. This is the default behavior - use `--no-generate-pss` only if you need to skip this step.
 
 This creates `~/.claude/cache/skill-checklist.md` with:
 - All skills organized into batches (default: 10 per batch)
