@@ -305,6 +305,8 @@ For detailed troubleshooting, see section 5.2 in [pss-commands.md](references/ps
 - Moving skills between directories
 - Deleting skills
 
+**Note:** PSS does NOT perform staleness detection or incremental updates. Every reindex is a complete regeneration from scratch - this is by design to ensure accuracy. The command always generates both the global index AND individual `.pss` metadata files for each skill.
+
 **Check but may not need reindex:**
 - Modifying skill content (SKILL.md body, references)
 - Adding/removing skill references (does not affect suggestions)
@@ -338,10 +340,10 @@ For detailed troubleshooting, see section 5.2 in [pss-commands.md](references/ps
 - Review skill categories for accuracy
 - Add co-usage hints in skill descriptions
 
-**Clean index occasionally:**
-- Delete index file every few months
-- Rebuild with `/pss-reindex-skills`
-- Ensures AI co-usage analysis is fresh
+**Full regeneration is the only mode:**
+- Every `/pss-reindex-skills` run regenerates completely from scratch
+- No caching, no incremental updates, no partial indexing
+- This ensures consistent, accurate results every time
 
 ---
 

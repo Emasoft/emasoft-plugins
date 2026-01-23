@@ -380,14 +380,16 @@ for (skill of skills) {
 }
 ```
 
-### 7.3 Staleness Detection
+### 7.3 Note on Staleness Detection
 
-Use `skill_hash` to detect when SKILL.md has changed:
+The `.pss` format includes an optional `skill_hash` field for tracking changes. However, **PSS does not perform staleness detection** at runtime. Instead, the recommended approach is to simply run `/pss-reindex-skills` whenever you want to update the index. Every reindex regenerates everything from scratch, ensuring consistency.
+
+The `skill_hash` field is provided for third-party tools that may want to track changes:
 
 ```javascript
+// Example for third-party validation tools (NOT used by PSS)
 if (pss.metadata.skill_hash !== sha256(readFile("SKILL.md"))) {
-  console.warn(`${skill.name}.pss is stale - SKILL.md has changed`);
-  // Optionally regenerate
+  console.log(`${skill.name}.pss may be out of date - consider running /pss-reindex-skills`);
 }
 ```
 
@@ -397,13 +399,15 @@ if (pss.metadata.skill_hash !== sha256(readFile("SKILL.md"))) {
 
 ### 8.1 AI Generation via `/pss-reindex-skills`
 
-The existing PSS command can generate `.pss` files:
+The PSS command generates `.pss` files automatically:
 
 ```bash
 # Generate/regenerate .pss files for all skills
 # (always regenerates from scratch, overwriting existing files)
-/pss-reindex-skills --generate-pss
+/pss-reindex-skills
 ```
+
+**Important:** The reindex command ALWAYS generates `.pss` files - there is no flag to enable or disable this behavior. Every run performs a complete regeneration from scratch.
 
 ### 8.2 Manual Creation
 
@@ -467,7 +471,7 @@ module.exports = function(context) {
 1. **Prefer .pss over AI generation**: Lower latency, predictable results
 2. **Merge scoring hints**: Apply tier and boost to ranking
 3. **Handle missing fields gracefully**: Use defaults
-4. **Warn on staleness**: Check skill_hash
+4. **Always regenerate from scratch**: No staleness checks needed - `/pss-reindex-skills` always regenerates everything
 
 ---
 

@@ -55,15 +55,25 @@
 
 **Usage:**
 ```bash
-# Standard discovery (current project + global)
-python3 pss_discover_skills.py
+# Standard reindex (current project + global)
+/pss-reindex-skills
 
-# Comprehensive discovery (ALL projects from ~/.claude.json)
-python3 pss_discover_skills.py --all-projects
+# Comprehensive reindex (ALL projects from ~/.claude.json)
+/pss-reindex-skills --all-projects
 
-# Generate .pss metadata files for each discovered skill
-python3 pss_discover_skills.py --all-projects --generate-pss
+# Reindex a single skill
+/pss-reindex-skills --skill skill-name
 ```
+
+**Direct script usage (for debugging):**
+```bash
+python3 pss_discover_skills.py --all-projects
+```
+
+**Important:** The reindex command ALWAYS:
+- Regenerates the index from scratch (no caching, no incremental updates)
+- Generates `.pss` metadata files for each discovered skill
+- There is NO partial reindexing - every run is a complete regeneration
 
 **Deleted Project Handling:**
 Projects in `~/.claude.json` that no longer exist on disk are automatically skipped with a warning. No error is raised.

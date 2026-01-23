@@ -144,7 +144,7 @@ If most skills are in "other", the skill metadata may need better categorization
 | `Index file missing` | PSS has never been indexed | Run `/pss-reindex-skills` |
 | `Index file corrupted` | JSON syntax error in index | Run `/pss-reindex-skills` to rebuild |
 | `No skills found` | Skills directories are empty | Check that skills are installed |
-| `Index older than skills` | Skills modified since last index | Run `/pss-reindex-skills` |
+| `Reindex recommended` | Index may be out of date | Run `/pss-reindex-skills` |
 
 **Common errors:**
 
@@ -158,7 +158,7 @@ If most skills are in "other", the skill metadata may need better categorization
 
 ## 3.0 Using /pss-reindex-skills to rebuild the skill index
 
-### 3.1 When to reindex: detecting stale skill data
+### 3.1 When to reindex
 
 **You should reindex when:**
 
@@ -168,9 +168,7 @@ If most skills are in "other", the skill metadata may need better categorization
 4. **Corrupted index** - `/pss-status` shows errors
 5. **Missing suggestions** - PSS should suggest a skill but does not
 
-**How to detect stale data:**
-
-Check the "Last Modified" timestamp in `/pss-status` output. If it is older than your last skill change, reindex.
+**Important:** PSS does NOT perform staleness detection or incremental updates. Every reindex is a complete regeneration from scratch. This ensures the index is always accurate and complete. Simply run `/pss-reindex-skills` whenever you want to update the index - there is only one behavior: full regeneration.
 
 ### 3.2 Running /pss-reindex-skills workflow step-by-step
 
