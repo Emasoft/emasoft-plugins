@@ -20,6 +20,7 @@ All notable changes to this project will be documented in this file.
 - Add index-related troubleshooting (missing index, parse errors, silent failures)
 - Simplify corrupted index fix - just use --force flag, no manual deletion needed
 - Update all PSS documentation to reflect simplified reindex behavior
+- Update CHANGELOG.md
 
 ### Features
 
