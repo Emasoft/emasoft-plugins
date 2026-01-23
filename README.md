@@ -7,7 +7,7 @@ A collection of high-quality Claude Code plugins focused on productivity and wor
 
 | Plugin | Version | Description |
 |--------|---------|-------------|
-| perfect-skill-suggester | 1.1.0 | High-accuracy skill activation (88%+) with AI-analyzed keywords |
+| perfect-skill-suggester | 1.1.1 | High-accuracy skill activation (88%+) with AI-analyzed keywords |
 
 *Last updated: 2026-01-23*
 
@@ -21,10 +21,10 @@ A collection of high-quality Claude Code plugins focused on productivity and wor
 claude plugin marketplace add https://github.com/Emasoft/emasoft-plugins
 ```
 
-Or for local development:
+Or if you cloned this repo locally:
 
 ```bash
-claude plugin marketplace add ./OUTPUT_SKILLS/emasoft-plugins-marketplace
+claude plugin marketplace add /path/to/emasoft-plugins
 ```
 
 ### 2. Install Plugin
@@ -79,11 +79,15 @@ High-accuracy skill activation with AI-analyzed keywords and Rust-powered matchi
 ### Local Testing
 
 ```bash
+# Clone the repo
+git clone https://github.com/Emasoft/emasoft-plugins.git
+cd emasoft-plugins
+
 # Test marketplace validation
-claude plugin validate ./OUTPUT_SKILLS/emasoft-plugins-marketplace
+claude plugin validate .
 
 # Test specific plugin
-claude plugin validate ./OUTPUT_SKILLS/perfect-skill-suggester
+claude plugin validate ./perfect-skill-suggester
 ```
 
 ### Releasing
