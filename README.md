@@ -170,6 +170,40 @@ claude plugin enable perfect-skill-suggester
 2. Check hooks are registered: `/hooks` (inside Claude Code)
 3. Restart Claude Code
 
+### No skill suggestions appear (silent failure)
+
+**Symptom:** Plugin is installed and working, but no skills are ever suggested, even for prompts that should match.
+
+**Cause:** The skill index file doesn't exist at `~/.claude/cache/skill-index.json`.
+
+**Solution:** Run `/pss-reindex-skills` to generate the skill index. This must be done after installation.
+
+### "Failed to read skill index" error
+
+**Symptom:** Error message mentioning "Failed to read skill index from <path>".
+
+**Causes:**
+- File permissions issue
+- Disk full
+- File corrupted
+
+**Solutions:**
+1. Check file exists: `ls -la ~/.claude/cache/skill-index.json`
+2. Check permissions: `chmod 644 ~/.claude/cache/skill-index.json`
+3. Regenerate index: `/pss-reindex-skills --force`
+
+### "Failed to parse skill index" error
+
+**Symptom:** Error message mentioning "Failed to parse skill index".
+
+**Cause:** The skill index JSON file is corrupted or malformed.
+
+**Solution:** Delete and regenerate the index:
+```bash
+rm ~/.claude/cache/skill-index.json
+```
+Then run `/pss-reindex-skills` inside Claude Code.
+
 ---
 
 ## Available Plugins

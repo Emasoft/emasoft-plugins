@@ -425,6 +425,71 @@ claude plugin enable perfect-skill-suggester
    python3 <plugin-path>/scripts/pss_discover_skills.py --help
    ```
 
+### No skill suggestions appear (silent failure)
+
+**Symptom:** Plugin is installed and working, but no skills are ever suggested, even for prompts that should match.
+
+**Cause:** The skill index file doesn't exist at `~/.claude/cache/skill-index.json`. This happens when you haven't run `/pss-reindex-skills` after installation.
+
+**Solution:** Run `/pss-reindex-skills` to generate the skill index:
+```
+/pss-reindex-skills
+```
+
+**Verify the index exists:**
+```bash
+ls -la ~/.claude/cache/skill-index.json
+```
+
+### "Failed to read skill index" error
+
+**Symptom:** Error message mentioning "Failed to read skill index from <path>".
+
+**Causes:**
+- File permissions issue
+- Disk full
+- File corrupted
+
+**Solutions:**
+1. Check file exists: `ls -la ~/.claude/cache/skill-index.json`
+2. Check permissions: `chmod 644 ~/.claude/cache/skill-index.json`
+3. Regenerate index: `/pss-reindex-skills --force`
+
+### "Failed to parse skill index" error
+
+**Symptom:** Error message mentioning "Failed to parse skill index".
+
+**Cause:** The skill index JSON file is corrupted or malformed.
+
+**Solution:** Delete and regenerate the index:
+```bash
+rm ~/.claude/cache/skill-index.json
+```
+Then run `/pss-reindex-skills` inside Claude Code.
+
+### Index exists but skills not matching
+
+**Symptom:** Index file exists at `~/.claude/cache/skill-index.json` but skills that should match aren't being suggested.
+
+**Causes:**
+- Index is outdated (new skills added since last reindex)
+- Keywords in index don't match your prompt
+- Scoring threshold too high
+
+**Solutions:**
+1. Force reindex to pick up new skills:
+   ```
+   /pss-reindex-skills --force
+   ```
+2. Test matching with verbose output:
+   ```
+   /pss-status --test "your prompt here" --verbose
+   ```
+3. Check the skill's keywords in the index:
+   ```bash
+   cat ~/.claude/cache/skill-index.json | jq '.skills["skill-name"]'
+   ```
+
 ---
 
 ## For Developers
