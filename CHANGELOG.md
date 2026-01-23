@@ -24,6 +24,7 @@ All notable changes to this project will be documented in this file.
 ### Features
 
 - Add git-cliff changelog automation and version sync
+- Bump plugins to v1.1.0
 
 ### Miscellaneous Tasks
 
