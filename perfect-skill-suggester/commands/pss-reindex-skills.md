@@ -85,7 +85,7 @@ Run the discovery script with `--checklist` and `--all-projects` to generate a m
 python3 ${CLAUDE_PLUGIN_ROOT}/scripts/pss_discover_skills.py --checklist --batch-size 10 --all-projects
 ```
 
-The reindex command ALWAYS generates `.pss` metadata files for each discovered skill (in the same directory as its `SKILL.md`). These files are regenerated from scratch on every reindex to ensure accuracy. This is the default behavior - use `--no-generate-pss` only if you need to skip this step.
+The reindex command ALWAYS generates `.pss` metadata files for each discovered skill (in the same directory as its `SKILL.md`). These files are regenerated from scratch on every reindex to ensure accuracy.
 
 This creates `~/.claude/cache/skill-checklist.md` with:
 - All skills organized into batches (default: 10 per batch)

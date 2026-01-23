@@ -492,12 +492,6 @@ def main() -> int:
         action="store_true",
         help="Scan ALL projects registered in ~/.claude.json (comprehensive indexing)",
     )
-    # PSS file generation (default: always generate)
-    parser.add_argument(
-        "--no-generate-pss",
-        action="store_true",
-        help="Skip .pss metadata file generation (default: always generate)",
-    )
     # Checklist mode arguments
     parser.add_argument(
         "--checklist",
@@ -531,11 +525,11 @@ def main() -> int:
     elif args.user_only:
         all_locations = [(s, p) for s, p in all_locations if s == "user"]
 
-    # Always generate .pss files unless --no-generate-pss is passed
+    # Always generate .pss files - no partial/incremental indexing
     skills = discover_skills(
         all_locations,
         args.skill,
-        generate_pss_files=not args.no_generate_pss,
+        generate_pss_files=True,
     )
 
     # Checklist mode: generate markdown checklist with batches
