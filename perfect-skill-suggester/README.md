@@ -2,6 +2,26 @@
 
 **High-accuracy skill activation (88%+) for Claude Code** with AI-analyzed keywords, weighted scoring, synonym expansion, and three-tier confidence routing.
 
+---
+
+## Table of Contents
+
+- [Features](#features)
+- [Installation](#installation)
+- [Update to Latest Version](#update-to-latest-version)
+- [Reinstall (Fix Broken Installation)](#reinstall-fix-broken-installation)
+- [Uninstall](#uninstall)
+- [Quick Start](#quick-start)
+- [Commands](#commands)
+- [How It Works](#how-it-works)
+- [Configuration](#configuration)
+- [Troubleshooting](#troubleshooting)
+- [For Developers](#for-developers)
+- [Documentation](#documentation)
+- [License](#license)
+
+---
+
 ## Features
 
 ### AI-Analyzed Keywords
@@ -64,19 +84,129 @@ Each skill can have a `.pss` file for custom matching rules:
 - Tier (primary/secondary/utility) for priority
 - Score boost (-10 to +10)
 
+---
+
 ## Installation
 
-### Option 1: Load with --plugin-dir (Recommended for testing)
+### Step 1: Add Marketplace
 
 ```bash
-claude --plugin-dir /path/to/perfect-skill-suggester
+claude plugin marketplace add https://github.com/Emasoft/emasoft-plugins
 ```
 
-### Option 2: Install from marketplace
+### Step 2: Install Plugin
 
 ```bash
 claude plugin install perfect-skill-suggester@emasoft-plugins
 ```
+
+### Step 3: Verify Installation
+
+```bash
+claude plugin list
+```
+
+You should see:
+```
+❯ perfect-skill-suggester@emasoft-plugins
+  Version: 1.1.1
+  Scope: user
+  Status: ✔ enabled
+```
+
+### Step 4: Restart Claude Code
+
+**Important:** After installation, you must restart Claude Code for the plugin to take effect.
+
+### Step 5: Generate Skill Index
+
+After restarting, run the reindex command to analyze all skills with AI:
+
+```
+/pss-reindex-skills
+```
+
+---
+
+## Update to Latest Version
+
+When a new version is released, follow these steps:
+
+### Step 1: Update Marketplace Cache
+
+```bash
+claude plugin marketplace update emasoft-plugins
+```
+
+### Step 2: Uninstall Current Version
+
+```bash
+claude plugin uninstall perfect-skill-suggester
+```
+
+### Step 3: Install Latest Version
+
+```bash
+claude plugin install perfect-skill-suggester@emasoft-plugins
+```
+
+### Step 4: Restart Claude Code
+
+Restart Claude Code to load the updated plugin.
+
+---
+
+## Reinstall (Fix Broken Installation)
+
+If the plugin is not working correctly, perform a clean reinstall:
+
+### Step 1: Uninstall
+
+```bash
+claude plugin uninstall perfect-skill-suggester
+```
+
+### Step 2: Update Marketplace Cache
+
+```bash
+claude plugin marketplace update emasoft-plugins
+```
+
+### Step 3: Reinstall
+
+```bash
+claude plugin install perfect-skill-suggester@emasoft-plugins
+```
+
+### Step 4: Restart Claude Code
+
+Restart Claude Code to load the freshly installed plugin.
+
+---
+
+## Uninstall
+
+To completely remove the plugin:
+
+### Step 1: Uninstall Plugin
+
+```bash
+claude plugin uninstall perfect-skill-suggester
+```
+
+### Step 2: (Optional) Remove Marketplace
+
+If you no longer want plugins from this marketplace:
+
+```bash
+claude plugin marketplace remove emasoft-plugins
+```
+
+### Step 3: Restart Claude Code
+
+Restart Claude Code to complete the removal.
+
+---
 
 ## Quick Start
 
@@ -106,6 +236,39 @@ Just type your requests naturally. PSS will suggest relevant skills based on wei
 "help me set up github actions"
 → Suggests: devops-expert (HIGH confidence)
 ```
+
+---
+
+## Commands
+
+### /pss-reindex-skills
+
+Generate AI-analyzed keyword index for all skills.
+
+```
+/pss-reindex-skills [--force] [--skill SKILL_NAME] [--batch-size N]
+```
+
+| Flag | Description |
+|------|-------------|
+| `--force` | Force reindex even if cache is fresh |
+| `--skill NAME` | Only reindex specific skill |
+| `--batch-size N` | Skills per batch (default: 10) |
+
+### /pss-status
+
+View current status and test matching.
+
+```
+/pss-status [--verbose] [--test "PROMPT"]
+```
+
+| Flag | Description |
+|------|-------------|
+| `--verbose` | Show detailed breakdown |
+| `--test "PROMPT"` | Test matching against prompt |
+
+---
 
 ## How It Works
 
@@ -164,34 +327,7 @@ For HIGH confidence matches, the output includes a commitment reminder:
 
 This helps Claude pause and evaluate before blindly following skill instructions.
 
-## Commands
-
-### /pss-reindex-skills
-
-Generate AI-analyzed keyword index for all skills.
-
-```
-/pss-reindex-skills [--force] [--skill SKILL_NAME] [--batch-size N]
-```
-
-| Flag | Description |
-|------|-------------|
-| `--force` | Force reindex even if cache is fresh |
-| `--skill NAME` | Only reindex specific skill |
-| `--batch-size N` | Skills per batch (default: 10) |
-
-### /pss-status
-
-View current status and test matching.
-
-```
-/pss-status [--verbose] [--test "PROMPT"]
-```
-
-| Flag | Description |
-|------|-------------|
-| `--verbose` | Show detailed breakdown |
-| `--test "PROMPT"` | Test matching against prompt |
+---
 
 ## Configuration
 
@@ -219,42 +355,160 @@ const HIGH_THRESHOLD: i32 = 12;
 const MEDIUM_THRESHOLD: i32 = 6;
 ```
 
-## Skill Index Format (v3.0)
+---
 
-```json
-{
-  "version": "3.0",
-  "generated": "2026-01-18T06:00:00Z",
-  "method": "ai-analyzed",
-  "skills_count": 216,
-  "skills": {
-    "devops-expert": {
-      "source": "user",
-      "path": "/path/to/SKILL.md",
-      "type": "skill",
-      "keywords": ["github", "actions", "ci", "deploy"],
-      "intents": ["deploy", "build", "test"],
-      "patterns": ["workflow.*failed", "ci.*error"],
-      "directories": ["workflows", ".github"],
-      "description": "CI/CD pipeline configuration"
-    }
-  }
-}
+## Troubleshooting
+
+### Commands not found after installation
+
+**Symptom:** Plugin shows as installed and enabled, but `/pss-reindex-skills` or `/pss-status` commands are not found.
+
+**Solution:** Restart Claude Code. Plugins only load their commands on startup.
+
+### Plugin install fails
+
+**Symptom:** `claude plugin install` returns an error.
+
+**Solutions:**
+1. Update the marketplace cache first:
+   ```bash
+   claude plugin marketplace update emasoft-plugins
+   ```
+2. Try reinstalling the marketplace:
+   ```bash
+   claude plugin marketplace remove emasoft-plugins
+   claude plugin marketplace add https://github.com/Emasoft/emasoft-plugins
+   ```
+
+### Plugin shows as disabled
+
+**Symptom:** Plugin is installed but status shows `✘ disabled`.
+
+**Solution:** Enable the plugin:
+```bash
+claude plugin enable perfect-skill-suggester
 ```
 
-## Platform Support
+### Hook not triggering
 
-Pre-built binaries included for:
+**Symptom:** Plugin is installed and enabled, but skill suggestions don't appear.
 
-| Platform | Binary |
-|----------|--------|
-| macOS Apple Silicon | `bin/pss-darwin-arm64` |
-| macOS Intel | `bin/pss-darwin-x86_64` |
-| Linux x86_64 | `bin/pss-linux-x86_64` |
-| Linux ARM64 | `bin/pss-linux-arm64` |
-| Windows x86_64 | `bin/pss-windows-x86_64.exe` |
+**Solutions:**
+1. Verify the plugin is enabled: `claude plugin list`
+2. Check hooks are registered: `/hooks` (inside Claude Code)
+3. Restart Claude Code
 
-## Building from Source
+### Skill index not generated
+
+**Symptom:** `/pss-status` shows no skills indexed.
+
+**Solution:** Run `/pss-reindex-skills` to generate the skill index.
+
+### Binary not found or permission denied
+
+**Symptom:** Hook fails with "binary not found" or "permission denied" error.
+
+**Solutions:**
+1. Check binary exists: `ls -la <plugin-path>/bin/`
+2. Make binary executable: `chmod +x <plugin-path>/bin/pss-*`
+3. Check platform: ensure you have the correct binary for your OS/architecture
+
+### Python errors during reindex
+
+**Symptom:** `/pss-reindex-skills` fails with Python errors.
+
+**Solutions:**
+1. Ensure Python 3.8+ is installed: `python3 --version`
+2. Check script path: `<plugin-path>/scripts/pss_discover_skills.py`
+3. Run script manually to see full error:
+   ```bash
+   python3 <plugin-path>/scripts/pss_discover_skills.py --help
+   ```
+
+---
+
+## For Developers
+
+This section is for contributors who want to develop, modify, or test the plugin locally.
+
+### Development Setup
+
+#### Option 1: Load Plugin Directly (Recommended)
+
+The fastest way to test plugin changes without installing:
+
+```bash
+# Load the plugin directly from your development directory
+claude --plugin-dir /path/to/perfect-skill-suggester
+```
+
+This loads the plugin for the current session only. Changes to plugin files require restarting Claude Code.
+
+#### Option 2: Clone and Develop
+
+```bash
+# Clone the marketplace repo
+git clone https://github.com/Emasoft/emasoft-plugins.git
+cd emasoft-plugins/perfect-skill-suggester
+
+# Make your changes...
+
+# Test by loading the plugin directly
+claude --plugin-dir .
+```
+
+### Project Structure
+
+```
+perfect-skill-suggester/
+├── .claude-plugin/
+│   └── plugin.json           # Plugin manifest (REQUIRED)
+├── bin/                      # Pre-built Rust binaries
+│   ├── pss-darwin-arm64      # macOS Apple Silicon
+│   ├── pss-darwin-x86_64     # macOS Intel
+│   ├── pss-linux-x86_64      # Linux x86_64
+│   ├── pss-linux-arm64       # Linux ARM64
+│   └── pss-windows-x86_64.exe # Windows
+├── commands/                 # Slash commands
+│   ├── pss-reindex-skills.md
+│   └── pss-status.md
+├── hooks/                    # Hook configurations
+│   └── hooks.json
+├── rust/                     # Rust source code
+│   └── skill-suggester/
+│       ├── Cargo.toml
+│       └── src/main.rs
+├── scripts/                  # Python scripts
+│   ├── pss_discover_skills.py
+│   ├── pss_hook.py
+│   └── pss_validate_plugin.py
+├── skills/                   # Skills provided by plugin
+│   └── pss-usage/
+└── docs/                     # Documentation
+    ├── PSS-ARCHITECTURE.md
+    └── PLUGIN-VALIDATION.md
+```
+
+### Local Testing Workflow
+
+```bash
+# 1. Make changes to plugin files
+
+# 2. Validate the plugin structure
+claude plugin validate .
+
+# 3. Run the validation script
+uv run python scripts/pss_validate_plugin.py --verbose
+
+# 4. Test the plugin
+claude --plugin-dir .
+
+# 5. Inside Claude Code, test commands:
+#    /pss-status
+#    /pss-reindex-skills
+```
+
+### Building Rust Binary from Source
 
 ```bash
 cd rust/skill-suggester
@@ -280,6 +534,97 @@ cargo build --release --target aarch64-unknown-linux-gnu
 cargo build --release --target x86_64-pc-windows-gnu
 ```
 
+Copy binaries to `bin/` directory:
+
+```bash
+cp target/aarch64-apple-darwin/release/pss bin/pss-darwin-arm64
+cp target/x86_64-apple-darwin/release/pss bin/pss-darwin-x86_64
+# ... etc
+```
+
+### Validation Script
+
+Run after every change to ensure plugin integrity:
+
+```bash
+uv run python scripts/pss_validate_plugin.py --verbose
+```
+
+This validates:
+- Plugin manifest structure
+- Command frontmatter
+- Hook configuration
+- Script syntax
+- Binary presence
+
+### Adding a Local Marketplace for Development
+
+If you prefer installing the plugin during development:
+
+```bash
+# Add local marketplace
+claude plugin marketplace add /path/to/emasoft-plugins
+
+# Install from local marketplace
+claude plugin install perfect-skill-suggester@emasoft-plugins
+
+# After changes, update and reinstall
+claude plugin marketplace update emasoft-plugins
+claude plugin uninstall perfect-skill-suggester
+claude plugin install perfect-skill-suggester@emasoft-plugins
+```
+
+### Important Notes for Developers
+
+1. **No Hot-Reload**: Claude Code does not support hot-reloading plugins. After any change, you must restart Claude Code.
+
+2. **Use `${CLAUDE_PLUGIN_ROOT}`**: Always use this environment variable in scripts and hooks for portable paths.
+
+3. **Hook stdin/stdout**: Hooks receive input via stdin as JSON, not environment variables. Output JSON to stdout.
+
+4. **Test on Multiple Platforms**: If modifying Rust code, test binaries on all supported platforms.
+
+---
+
+## Skill Index Format (v3.0)
+
+```json
+{
+  "version": "3.0",
+  "generated": "2026-01-18T06:00:00Z",
+  "method": "ai-analyzed",
+  "skills_count": 216,
+  "skills": {
+    "devops-expert": {
+      "source": "user",
+      "path": "/path/to/SKILL.md",
+      "type": "skill",
+      "keywords": ["github", "actions", "ci", "deploy"],
+      "intents": ["deploy", "build", "test"],
+      "patterns": ["workflow.*failed", "ci.*error"],
+      "directories": ["workflows", ".github"],
+      "description": "CI/CD pipeline configuration"
+    }
+  }
+}
+```
+
+---
+
+## Platform Support
+
+Pre-built binaries included for:
+
+| Platform | Binary |
+|----------|--------|
+| macOS Apple Silicon | `bin/pss-darwin-arm64` |
+| macOS Intel | `bin/pss-darwin-x86_64` |
+| Linux x86_64 | `bin/pss-linux-x86_64` |
+| Linux ARM64 | `bin/pss-linux-arm64` |
+| Windows x86_64 | `bin/pss-windows-x86_64.exe` |
+
+---
+
 ## Performance
 
 | Metric | Value |
@@ -288,6 +633,8 @@ cargo build --release --target x86_64-pc-windows-gnu
 | Binary size | ~1MB |
 | Memory usage | ~2-3MB |
 | Accuracy | 88%+ |
+
+---
 
 ## Documentation
 
@@ -303,13 +650,7 @@ cargo build --release --target x86_64-pc-windows-gnu
 - **Two-Pass Generation**: Pass 1 extracts keywords/descriptions, Pass 2 uses AI to determine co-usage relationships.
 - **Categories vs Keywords**: Categories are FIELDS OF COMPETENCE (16 predefined) for the CxC matrix. Keywords are a SUPERSET including specific tools/actions.
 
-## Validation
-
-Run the validation script after every change:
-
-```bash
-uv run python scripts/pss_validate_plugin.py --verbose
-```
+---
 
 ## License
 
