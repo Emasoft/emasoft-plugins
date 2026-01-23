@@ -29,6 +29,7 @@ All notable changes to this project will be documented in this file.
 
 - Update claude-plugins-validation submodule
 - Update submodules with marketplace installation notes
+- Update claude-plugins-validation submodule
 
 ### Refactor
 
