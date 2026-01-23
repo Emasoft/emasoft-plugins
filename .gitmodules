@@ -1,3 +1,6 @@
 [submodule "claude-plugins-validation"]
 	path = claude-plugins-validation
 	url = https://github.com/Emasoft/claude-plugins-validation.git
+[submodule "perfect-skill-suggester"]
+	path = perfect-skill-suggester
+	url = https://github.com/Emasoft/perfect-skill-suggester.git
