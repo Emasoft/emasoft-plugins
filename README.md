@@ -8,6 +8,7 @@ A collection of high-quality Claude Code plugins focused on productivity and wor
 | Plugin | Version | Description |
 |--------|---------|-------------|
 | perfect-skill-suggester | 1.1.1 | High-accuracy skill activation (88%+) with AI-analyzed keywords |
+| claude-plugins-validation | 1.0.0 | Comprehensive validation suite for plugins, marketplaces, hooks, skills, and MCP |
 
 *Last updated: 2026-01-23*
 
@@ -26,7 +27,11 @@ claude plugin marketplace add https://github.com/Emasoft/emasoft-plugins
 ### Step 2: Install Plugin
 
 ```bash
+# Install skill suggester
 claude plugin install perfect-skill-suggester@emasoft-plugins
+
+# Install plugin validator
+claude plugin install claude-plugins-validation@emasoft-plugins
 ```
 
 ### Step 3: Verify Installation
@@ -240,6 +245,47 @@ High-accuracy skill activation with AI-analyzed keywords and Rust-powered matchi
 | Linux x86_64 | `pss-linux-x86_64` |
 | Linux ARM64 | `pss-linux-arm64` |
 | Windows x86_64 | `pss-windows-x86_64.exe` |
+
+---
+
+### [Claude Plugins Validation](./claude-plugins-validation/README.md)
+
+> **[Full Documentation](./claude-plugins-validation/README.md)** | **[Skill Reference](./claude-plugins-validation/skills/plugin-validation-skill/SKILL.md)**
+
+Comprehensive validation suite for Claude Code plugins, marketplaces, hooks, skills, and MCP servers.
+
+**Features:**
+- 5 specialized Python validators (plugin, skill, hook, MCP, marketplace)
+- Expert `plugin-validator` agent for thorough examination
+- Complete skill with 5 reference documents
+- GitHub marketplace deployment validation
+- Links to 45+ official Anthropic documentation URLs
+- Supports ruff/mypy/shellcheck linting integration
+
+**Validators:**
+- `validate_plugin.py` - Full plugin structure validation
+- `validate_skill.py` - Skill directory and frontmatter validation
+- `validate_hook.py` - Hook configuration and script validation
+- `validate_mcp.py` - MCP server configuration validation
+- `validate_marketplace.py` - Marketplace and GitHub deployment validation
+
+**Usage:**
+```bash
+# Validate a plugin
+cd claude-plugins-validation
+uv run python scripts/validate_plugin.py /path/to/your-plugin --verbose
+
+# Validate a marketplace for GitHub deployment
+uv run python scripts/validate_marketplace.py /path/to/marketplace --verbose
+```
+
+**Exit Codes:**
+| Code | Meaning |
+|------|---------|
+| 0 | All checks passed |
+| 1 | Critical issues - plugin broken |
+| 2 | Major issues - some features may fail |
+| 3 | Minor issues - warnings only |
 
 ---
 
