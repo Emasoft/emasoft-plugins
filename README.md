@@ -13,18 +13,14 @@ A collection of high-quality Claude Code plugins focused on productivity and wor
 
 <!-- PLUGIN-VERSIONS-END -->
 
+---
+
 ## Installation
 
 ### 1. Add Marketplace
 
 ```bash
 claude plugin marketplace add https://github.com/Emasoft/emasoft-plugins
-```
-
-Or if you cloned this repo locally:
-
-```bash
-claude plugin marketplace add /path/to/emasoft-plugins
 ```
 
 ### 2. Install Plugin
@@ -39,7 +35,13 @@ claude plugin install perfect-skill-suggester@emasoft-plugins
 claude plugin list
 ```
 
-## Plugins
+### 4. Restart Claude Code
+
+After installation, restart Claude Code for the plugin to take effect.
+
+---
+
+## Available Plugins
 
 ### [Perfect Skill Suggester (PSS)](./perfect-skill-suggester/README.md)
 
@@ -55,7 +57,7 @@ High-accuracy skill activation with AI-analyzed keywords and Rust-powered matchi
 - Weighted scoring system
 - Three-tier confidence routing (HIGH/MEDIUM/LOW)
 - Co-usage boosting for related skills
-- **NEW in v1.1.0**: Multi-project skill discovery from `~/.claude.json`
+- Multi-project skill discovery from `~/.claude.json`
 
 **Commands:**
 - `/pss-status` - View PSS status and index statistics
@@ -66,6 +68,7 @@ High-accuracy skill activation with AI-analyzed keywords and Rust-powered matchi
 - Python 3.8+ for index generation
 
 **Supported Platforms:**
+
 | Platform | Binary |
 |----------|--------|
 | macOS Apple Silicon | `pss-darwin-arm64` |
@@ -74,31 +77,51 @@ High-accuracy skill activation with AI-analyzed keywords and Rust-powered matchi
 | Linux ARM64 | `pss-linux-arm64` |
 | Windows x86_64 | `pss-windows-x86_64.exe` |
 
-## Development
+---
+
+## For Developers
+
+This section is for contributors who want to develop or modify the plugins.
+
+### Clone the Repository
+
+```bash
+git clone https://github.com/Emasoft/emasoft-plugins.git
+cd emasoft-plugins
+```
 
 ### Local Testing
 
 ```bash
-# Clone the repo
-git clone https://github.com/Emasoft/emasoft-plugins.git
-cd emasoft-plugins
-
-# Test marketplace validation
+# Validate the marketplace
 claude plugin validate .
 
-# Test specific plugin
+# Validate a specific plugin
 claude plugin validate ./perfect-skill-suggester
+
+# Load plugin locally without installing
+claude --plugin-dir ./perfect-skill-suggester
 ```
 
-### Releasing
+### Adding a Local Marketplace
 
-Use the marketplace-release skill for proper version bumping and tagging:
+For development, you can add the cloned repo as a local marketplace:
+
+```bash
+claude plugin marketplace add /path/to/emasoft-plugins
+```
+
+### Releasing New Versions
+
+Use the release script for proper version bumping and tagging:
 
 ```bash
 python release.py patch perfect-skill-suggester "Bug fix description"
 python release.py minor perfect-skill-suggester "New feature"
 python release.py major perfect-skill-suggester "Breaking change"
 ```
+
+---
 
 ## License
 
