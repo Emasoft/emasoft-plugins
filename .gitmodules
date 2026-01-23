@@ -1,0 +1,3 @@
+[submodule "claude-plugins-validation"]
+	path = claude-plugins-validation
+	url = https://github.com/Emasoft/claude-plugins-validation.git
