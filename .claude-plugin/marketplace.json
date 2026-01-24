@@ -31,15 +31,7 @@
         "ml"
       ],
       "category": "workflow",
-      "strict": true,
-      "commands": [
-        "./commands/pss-reindex-skills.md",
-        "./commands/pss-status.md"
-      ],
-      "skills": [
-        "./skills/pss-usage"
-      ],
-      "agents": []
+      "strict": true
     },
     {
       "name": "claude-plugins-validation",
@@ -64,14 +56,7 @@
         "linting"
       ],
       "category": "developer-tools",
-      "strict": true,
-      "commands": [],
-      "skills": [
-        "./skills/plugin-validation-skill"
-      ],
-      "agents": [
-        "./agents/plugin-validator.md"
-      ]
+      "strict": true
     }
   ]
 }
