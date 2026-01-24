@@ -1,10 +1,11 @@
 {
-  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
   "name": "emasoft-plugins",
-  "description": "Emasoft's Claude Code plugins collection - high-quality productivity tools",
   "owner": {
     "name": "Emasoft",
     "email": "713559+Emasoft@users.noreply.github.com"
+  },
+  "metadata": {
+    "description": "Emasoft's Claude Code plugins collection - high-quality productivity tools"
   },
   "plugins": [
     {
@@ -14,8 +15,7 @@
       "version": "1.2.0",
       "author": {
         "name": "Emasoft",
-        "email": "713559+Emasoft@users.noreply.github.com",
-        "url": "https://github.com/Emasoft"
+        "email": "713559+Emasoft@users.noreply.github.com"
       },
       "homepage": "https://github.com/Emasoft/perfect-skill-suggester",
       "repository": "https://github.com/Emasoft/perfect-skill-suggester",
@@ -48,8 +48,7 @@
       "version": "1.2.0",
       "author": {
         "name": "Emasoft",
-        "email": "713559+Emasoft@users.noreply.github.com",
-        "url": "https://github.com/Emasoft"
+        "email": "713559+Emasoft@users.noreply.github.com"
       },
       "homepage": "https://github.com/Emasoft/claude-plugins-validation",
       "repository": "https://github.com/Emasoft/claude-plugins-validation",
