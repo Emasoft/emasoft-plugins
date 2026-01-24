@@ -1,13 +1,10 @@
 {
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
   "name": "emasoft-plugins",
+  "description": "Emasoft's Claude Code plugins collection - high-quality productivity tools",
   "owner": {
     "name": "Emasoft",
-    "email": "713559+Emasoft@users.noreply.github.com",
-    "url": "https://github.com/Emasoft"
-  },
-  "metadata": {
-    "description": "Emasoft's Claude Code plugins collection - high-quality productivity tools",
-    "version": "1.1.0"
+    "email": "713559+Emasoft@users.noreply.github.com"
   },
   "plugins": [
     {
@@ -34,7 +31,7 @@
         "ml"
       ],
       "category": "workflow",
-      "strict": false,
+      "strict": true,
       "commands": [
         "./commands/pss-reindex-skills.md",
         "./commands/pss-status.md"
@@ -68,7 +65,7 @@
         "linting"
       ],
       "category": "developer-tools",
-      "strict": false,
+      "strict": true,
       "commands": [],
       "skills": [
         "./skills/plugin-validation-skill"
