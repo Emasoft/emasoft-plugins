@@ -7,14 +7,14 @@
   },
   "metadata": {
     "description": "Emasoft's Claude Code plugins collection - high-quality productivity tools",
-    "version": "1.0.0"
+    "version": "1.1.0"
   },
   "plugins": [
     {
       "name": "perfect-skill-suggester",
       "source": "./perfect-skill-suggester",
       "description": "High-accuracy skill activation (88%+) with AI-analyzed keywords, weighted scoring, synonym expansion, and three-tier confidence routing.",
-      "version": "1.1.0",
+      "version": "1.2.0",
       "author": {
         "name": "Emasoft",
         "email": "713559+Emasoft@users.noreply.github.com",
@@ -48,7 +48,7 @@
       "name": "claude-plugins-validation",
       "source": "./claude-plugins-validation",
       "description": "Comprehensive validation suite for Claude Code plugins, marketplaces, hooks, skills, and MCP servers. Includes 5 Python validators, an expert agent, and detailed skill documentation.",
-      "version": "1.1.0",
+      "version": "1.2.0",
       "author": {
         "name": "Emasoft",
         "email": "713559+Emasoft@users.noreply.github.com",

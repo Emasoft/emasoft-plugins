@@ -121,7 +121,7 @@ def validate_marketplace_json(repo_root: Path) -> tuple[bool, str]:
         return True, "validator not found"
 
     code, stdout, stderr = run_command(
-        ["uv", "run", "python", str(validator), str(repo_root), "--quiet"],
+        ["uv", "run", "python", str(validator), str(repo_root)],
         cwd=repo_root / "claude-plugins-validation"
     )
     if code == 0:
