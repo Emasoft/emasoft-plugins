@@ -405,3 +405,47 @@ MIT License - See individual plugin directories for specific licenses.
 **Emasoft**
 - GitHub: [@Emasoft](https://github.com/Emasoft)
 - Email: 713559+Emasoft@users.noreply.github.com
+
+
+## Architecture
+
+```mermaid
+flowchart TB
+    subgraph Marketplace["Marketplace Repository"]
+        MJ[marketplace.json]
+        UW[update-submodules.yml]
+        SV[sync_marketplace_versions.py]
+    end
+
+    subgraph Plugins["Plugin Repositories"]
+        P1[plugin-a]
+        P2[plugin-b]
+        P3[plugin-n]
+    end
+
+    subgraph Automation["GitHub Actions"]
+        CRON[Scheduled Check<br/>every 6 hours]
+        DISPATCH[Repository Dispatch<br/>plugin-updated event]
+    end
+
+    P1 -->|submodule| Marketplace
+    P2 -->|submodule| Marketplace
+    P3 -->|submodule| Marketplace
+
+    P1 -->|notify-marketplace.yml| DISPATCH
+    P2 -->|notify-marketplace.yml| DISPATCH
+    P3 -->|notify-marketplace.yml| DISPATCH
+
+    CRON -->|triggers| UW
+    DISPATCH -->|triggers| UW
+    UW -->|runs| SV
+    SV -->|updates| MJ
+```
+
+### How It Works
+
+1. **Plugin Update**: When a plugin repo pushes changes, its `notify-marketplace.yml` workflow sends a repository dispatch event
+2. **Marketplace Update**: The marketplace's `update-submodules.yml` workflow triggers (via dispatch or scheduled cron)
+3. **Version Sync**: The `sync_marketplace_versions.py` script reads each plugin's version and updates `marketplace.json`
+4. **Auto Commit**: Changes are committed and pushed automatically
+
