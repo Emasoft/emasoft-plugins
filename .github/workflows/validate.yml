@@ -1,4 +1,4 @@
-name: Plugin Validation
+name: Marketplace Validation
 
 on:
   push:
@@ -24,22 +24,81 @@ jobs:
           python -m pip install --upgrade pip
           pip install ruff mypy pyyaml
 
-      - name: Find validator
-        id: find-validator
+      - name: Validate marketplace structure
         run: |
-          if [ -f "scripts/validate_plugin.py" ]; then
-            echo "validator=scripts/validate_plugin.py" >> $GITHUB_OUTPUT
-          elif [ -f "claude-plugins-validation/scripts/validate_plugin.py" ]; then
-            echo "validator=claude-plugins-validation/scripts/validate_plugin.py" >> $GITHUB_OUTPUT
+          echo "=== Validating Marketplace Structure ==="
+
+          # Check marketplace.json exists
+          if [ -f ".claude-plugin/marketplace.json" ]; then
+            echo "✓ marketplace.json exists"
+            python -c "import json; json.load(open('.claude-plugin/marketplace.json'))" && echo "✓ marketplace.json is valid JSON"
           else
-            echo "validator=" >> $GITHUB_OUTPUT
+            echo "✗ marketplace.json not found"
+            exit 1
           fi
 
-      - name: Validate plugin(s)
-        if: steps.find-validator.outputs.validator != ''
-        run: |
-          python ${{ steps.find-validator.outputs.validator }} . --verbose
+          # Check .gitmodules exists
+          if [ -f ".gitmodules" ]; then
+            echo "✓ .gitmodules exists"
+          else
+            echo "✗ .gitmodules not found"
+            exit 1
+          fi
 
-      - name: Lint Python files
+          # Check submodules are initialized
+          git submodule status
+
+          echo ""
+          echo "=== Marketplace structure is valid ==="
+
+      - name: Validate each plugin submodule
         run: |
-          ruff check . --select=E,F,W --ignore=E501 || true
+          echo "=== Validating Plugin Submodules ==="
+
+          # Find the validator
+          VALIDATOR=""
+          if [ -f "claude-plugins-validation/scripts/validate_plugin.py" ]; then
+            VALIDATOR="claude-plugins-validation/scripts/validate_plugin.py"
+          fi
+
+          FAILED=0
+
+          # Loop through each submodule
+          git submodule foreach --quiet 'echo $name' | while read plugin; do
+            if [ -d "$plugin/.claude-plugin" ]; then
+              echo ""
+              echo "--- Validating: $plugin ---"
+
+              if [ -n "$VALIDATOR" ]; then
+                python "$VALIDATOR" "$plugin" --verbose || FAILED=1
+              else
+                # Basic validation without validator script
+                if [ -f "$plugin/.claude-plugin/plugin.json" ]; then
+                  python -c "import json; json.load(open('$plugin/.claude-plugin/plugin.json'))" && echo "✓ $plugin: plugin.json valid"
+                else
+                  echo "✗ $plugin: plugin.json not found"
+                  FAILED=1
+                fi
+              fi
+            else
+              echo "⚠ $plugin: No .claude-plugin directory (skipping)"
+            fi
+          done
+
+          if [ "$FAILED" -ne 0 ]; then
+            echo ""
+            echo "=== Some plugins failed validation ==="
+            exit 1
+          fi
+
+          echo ""
+          echo "=== All plugins validated successfully ==="
+
+      - name: Lint marketplace scripts
+        run: |
+          echo "=== Linting marketplace scripts ==="
+          if [ -d "scripts" ]; then
+            ruff check scripts/ --select=E,F,W --ignore=E501 || echo "⚠ Some lint warnings (non-blocking)"
+          else
+            echo "No scripts/ directory to lint"
+          fi
