@@ -105,16 +105,16 @@ def sync_versions(
         if not plugin_name:
             continue
 
-        # Determine plugin directory
+        # Determine plugin directory from source
         source = plugin.get("source", f"./{plugin_name}")
-        if source.startswith("./"):
+        if isinstance(source, str) and source.startswith("./"):
             plugin_dir = marketplace_dir / source[2:]
         else:
             plugin_dir = marketplace_dir / plugin_name
 
         if not plugin_dir.exists():
             if verbose:
-                print(f"  [SKIP] {plugin_name}: directory not found")
+                print(f"  [SKIP] {plugin_name}: directory not found at {plugin_dir}")
             continue
 
         # Get version from plugin.json

@@ -18,7 +18,6 @@
         "name": "Emasoft",
         "email": "713559+Emasoft@users.noreply.github.com"
       },
-      "homepage": "https://github.com/Emasoft/perfect-skill-suggester",
       "repository": "https://github.com/Emasoft/perfect-skill-suggester",
       "license": "MIT",
       "keywords": [
@@ -31,8 +30,7 @@
         "performance",
         "ml"
       ],
-      "category": "workflow",
-      "strict": true
+      "category": "workflow"
     },
     {
       "name": "claude-plugins-validation",
@@ -43,7 +41,6 @@
         "name": "Emasoft",
         "email": "713559+Emasoft@users.noreply.github.com"
       },
-      "homepage": "https://github.com/Emasoft/claude-plugins-validation",
       "repository": "https://github.com/Emasoft/claude-plugins-validation",
       "license": "MIT",
       "keywords": [
@@ -56,8 +53,7 @@
         "quality-assurance",
         "linting"
       ],
-      "category": "developer-tools",
-      "strict": true
+      "category": "developer-tools"
     }
   ]
 }
