@@ -34,7 +34,7 @@ jobs:
         with:
           submodules: true
           fetch-depth: 0
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.MARKETPLACE_PAT }}
 
       - name: Show trigger info
         run: |
