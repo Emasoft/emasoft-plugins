@@ -7,10 +7,10 @@ A collection of high-quality Claude Code plugins focused on productivity and wor
 
 | Plugin | Version | Description |
 |--------|---------|-------------|
-| perfect-skill-suggester | 1.1.0 | High-accuracy skill activation (88%+) with AI-analyzed keywords |
-| claude-plugins-validation | 1.1.0 | Comprehensive validation suite with multi-language linter/dependency support |
+| perfect-skill-suggester | 1.2.2 | High-accuracy skill activation (88%+) with AI-analyzed keywords |
+| claude-plugins-validation | 1.0.1 | Comprehensive validation suite with multi-language linter/dependency support |
 
-*Last updated: 2026-01-23*
+*Last updated: 2026-01-25*
 
 <!-- PLUGIN-VERSIONS-END -->
 
@@ -174,6 +174,55 @@ claude plugin enable perfect-skill-suggester
 1. Verify the plugin is enabled: `claude plugin list`
 2. Check hooks are registered: `/hooks` (inside Claude Code)
 3. Restart Claude Code
+
+### Hook path not found after version update
+
+**Symptom:** After updating a plugin, you see an error like:
+```
+UserPromptSubmit operation blocked by hook:
+can't open file '.../perfect-skill-suggester/1.2.1/scripts/pss_hook.py': No such file or directory
+```
+
+**Cause:** Claude Code is still referencing the OLD version path in memory. The cache now has the new version (e.g., `1.2.2/`), but the running session has the old path (`1.2.1/`) cached.
+
+**Solution:** **Restart Claude Code** after any plugin update. This is required for Claude Code to reload the new version paths.
+
+If restarting doesn't fix it, perform a clean reinstall:
+```bash
+# 1. Clear the marketplace cache
+rm -rf ~/.claude/plugins/cache/emasoft-plugins/
+
+# 2. Uninstall the plugin
+claude plugin uninstall perfect-skill-suggester@emasoft-plugins
+
+# 3. Reinstall
+claude plugin install perfect-skill-suggester@emasoft-plugins
+
+# 4. Restart Claude Code
+```
+
+### Old version still showing after update
+
+**Symptom:** After running `claude plugin marketplace update`, the plugin still shows the old version.
+
+**Cause:** The marketplace cache or installed plugin cache is stale.
+
+**Solution:** Full reinstall cycle:
+```bash
+# 1. Clear marketplace cache
+rm -rf ~/.claude/plugins/cache/emasoft-plugins/
+
+# 2. Uninstall
+claude plugin uninstall perfect-skill-suggester@emasoft-plugins
+
+# 3. Reinstall
+claude plugin install perfect-skill-suggester@emasoft-plugins
+
+# 4. Verify version
+claude plugin list | grep perfect-skill
+
+# 5. IMPORTANT: Restart Claude Code
+```
 
 ### No skill suggestions appear (silent failure)
 
