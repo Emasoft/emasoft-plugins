@@ -54,6 +54,92 @@
         "linting"
       ],
       "category": "developer-tools"
+    },
+    {
+      "name": "emasoft-architect-agent",
+      "source": "./emasoft-architect-agent",
+      "description": "Design documents, requirements analysis, architecture decisions - creates specifications for orchestrator",
+      "version": "1.0.0",
+      "author": {
+        "name": "Emasoft",
+        "email": "713559+Emasoft@users.noreply.github.com"
+      },
+      "repository": "https://github.com/Emasoft/emasoft-architect-agent",
+      "license": "MIT",
+      "keywords": [
+        "architect",
+        "design",
+        "planning",
+        "documentation",
+        "requirements",
+        "architecture",
+        "specifications"
+      ],
+      "category": "workflow"
+    },
+    {
+      "name": "emasoft-assistant-manager-agent",
+      "source": "./emasoft-assistant-manager-agent",
+      "description": "User's right hand - sole interlocutor with user, directs other roles (architect, orchestrator, integrator)",
+      "version": "1.0.0",
+      "author": {
+        "name": "Emasoft",
+        "email": "713559+Emasoft@users.noreply.github.com"
+      },
+      "repository": "https://github.com/Emasoft/emasoft-assistant-manager-agent",
+      "license": "MIT",
+      "keywords": [
+        "assistant",
+        "manager",
+        "user-interface",
+        "coordination",
+        "approval",
+        "communication"
+      ],
+      "category": "workflow"
+    },
+    {
+      "name": "emasoft-integrator-agent",
+      "source": "./emasoft-integrator-agent",
+      "description": "Quality gates, testing, merging, release candidates - ensures code quality before integration",
+      "version": "1.0.0",
+      "author": {
+        "name": "Emasoft",
+        "email": "713559+Emasoft@users.noreply.github.com"
+      },
+      "repository": "https://github.com/Emasoft/emasoft-integrator-agent",
+      "license": "MIT",
+      "keywords": [
+        "integrator",
+        "testing",
+        "quality",
+        "code-review",
+        "github",
+        "merge",
+        "release"
+      ],
+      "category": "workflow"
+    },
+    {
+      "name": "emasoft-orchestrator-agent",
+      "source": "./emasoft-orchestrator-agent",
+      "description": "Task distribution, agent coordination, progress monitoring - executes architect's plans via subagents",
+      "version": "1.0.0",
+      "author": {
+        "name": "Emasoft",
+        "email": "713559+Emasoft@users.noreply.github.com"
+      },
+      "repository": "https://github.com/Emasoft/emasoft-orchestrator-agent",
+      "license": "MIT",
+      "keywords": [
+        "orchestrator",
+        "task-management",
+        "agents",
+        "coordination",
+        "delegation",
+        "monitoring"
+      ],
+      "category": "workflow"
     }
   ]
 }
