@@ -1,13 +1,21 @@
 # Python
 __pycache__/
 *.py[cod]
-*.pyo
-.venv/
-venv/
+*$py.class
+*.so
+.Python
+*.egg-info/
+.eggs/
+dist/
+build/
 
-# Rust
-target/
-Cargo.lock
+# Type checking
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# Linting
+.ruff_cache/
 
 # IDE
 .idea/
@@ -19,15 +27,11 @@ Cargo.lock
 .DS_Store
 Thumbs.db
 
-# Logs
-*.log
+# Dev folders (not tracked)
+docs_dev/
+scripts_dev/
+tests_dev/
 
-# Cache
-.cache/
-*.cache
-
-# Build artifacts
-*.so
-*.dylib
-*.dll
-.venv/
+# Rust
+target/
+Cargo.lock

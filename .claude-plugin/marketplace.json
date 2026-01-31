@@ -36,7 +36,7 @@
       "name": "claude-plugins-validation",
       "source": "./claude-plugins-validation",
       "description": "Comprehensive validation suite for Claude Code plugins, marketplaces, hooks, skills, and MCP servers. Includes 5 Python validators, an expert agent, and detailed skill documentation.",
-      "version": "1.2.0",
+      "version": "1.0.1",
       "author": {
         "name": "Emasoft",
         "email": "713559+Emasoft@users.noreply.github.com"
