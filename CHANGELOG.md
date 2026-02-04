@@ -11,6 +11,11 @@ All notable changes to this project will be documented in this file.
 - **marketplace:** Remove duplicate component paths for strict mode
 - Use MARKETPLACE_PAT for branch protection bypass
 - Correct marketplace validation workflow
+- Revert to string path source format for local submodule marketplace
+
+### Documentation
+
+- Add troubleshooting for hook path and version update issues
 
 ### Features
 
@@ -30,6 +35,11 @@ All notable changes to this project will be documented in this file.
 - Update claude-plugins-validation to 1.0.1
 - Update perfect-skill-suggester to 1.2.2
 - Update claude-plugins-validation to 1.0.1
+- Update claude-plugins-validation to 1.1.0
+- Update claude-plugins-validation to 1.2.0
+- Update perfect-skill-suggester to 1.2.3
+- Update perfect-skill-suggester to 1.3.0
+- Update PSS submodule to v1.3.0 with context-aware suggestions
 
 ### Refactor
 
