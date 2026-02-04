@@ -140,6 +140,28 @@
         "monitoring"
       ],
       "category": "workflow"
+    },
+    {
+      "name": "emasoft-chief-of-staff",
+      "source": "./emasoft-chief-of-staff",
+      "description": "Multi-agent lifecycle management - spawns, monitors, hibernates, and terminates Claude Code agents across projects",
+      "version": "1.3.0",
+      "author": {
+        "name": "Emasoft",
+        "email": "713559+Emasoft@users.noreply.github.com"
+      },
+      "repository": "https://github.com/Emasoft/emasoft-chief-of-staff",
+      "license": "MIT",
+      "keywords": [
+        "chief-of-staff",
+        "agent-lifecycle",
+        "multi-agent",
+        "spawn",
+        "hibernate",
+        "coordination",
+        "aimaestro"
+      ],
+      "category": "workflow"
     }
   ]
 }

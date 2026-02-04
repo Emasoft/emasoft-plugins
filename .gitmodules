@@ -16,3 +16,6 @@
 [submodule "emasoft-orchestrator-agent"]
 	path = emasoft-orchestrator-agent
 	url = https://github.com/Emasoft/emasoft-orchestrator-agent.git
+[submodule "emasoft-chief-of-staff"]
+	path = emasoft-chief-of-staff
+	url = https://github.com/Emasoft/emasoft-chief-of-staff.git

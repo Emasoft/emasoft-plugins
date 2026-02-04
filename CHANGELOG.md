@@ -39,7 +39,14 @@ All notable changes to this project will be documented in this file.
 - Update claude-plugins-validation to 1.2.0
 - Update perfect-skill-suggester to 1.2.3
 - Update perfect-skill-suggester to 1.3.0
+- Update perfect-skill-suggester to 1.5.0
+- Update emasoft-assistant-manager-agent to 1.3.0
+- Update emasoft-integrator-agent to 1.1.0
+- Update perfect-skill-suggester to 1.6.0
+- Update emasoft-assistant-manager-agent to 1.1.0
 - Update PSS submodule to v1.3.0 with context-aware suggestions
+- Gitignore all *_dev folders, untrack docs_dev
+- **submodules:** Update all plugins with CI fix
 
 ### Refactor
 
