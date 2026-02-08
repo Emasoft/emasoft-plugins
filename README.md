@@ -7,14 +7,14 @@ A collection of high-quality Claude Code plugins for multi-agent development wor
 
 | Plugin | Version | Category | Description |
 |--------|---------|----------|-------------|
-| perfect-skill-suggester | 1.6.0 | Utility | High-accuracy skill activation (88%+) with AI-analyzed keywords |
-| claude-plugins-validation | 1.3.0 | Utility | Comprehensive validation suite for plugins, skills, hooks, and MCP |
-| emasoft-assistant-manager-agent | 1.1.1 | Agent | User interface and role routing for the Emasoft agent ecosystem |
-| emasoft-chief-of-staff | 1.3.1 | Agent | Multi-agent lifecycle management (spawn, monitor, hibernate, terminate) |
-| emasoft-architect-agent | 1.1.1 | Agent | Architecture design, requirements analysis, and specification creation |
-| emasoft-orchestrator-agent | 1.2.0 | Agent | Task distribution, agent coordination, and progress monitoring |
-| emasoft-integrator-agent | 1.1.1 | Agent | Quality gates, code review, testing, and release management |
-| emasoft-programmer-agent | 1.0.0 | Agent | Code implementation, testing, and debugging (Python, JS/TS, Rust, Go, .NET, C/C++, Swift) |
+| perfect-skill-suggester | 1.6.1 | Utility | High-accuracy skill activation (88%+) with AI-analyzed keywords |
+| claude-plugins-validation | 1.3.1 | Utility | Comprehensive validation suite for plugins, skills, hooks, and MCP |
+| emasoft-assistant-manager-agent | 1.1.2 | Agent | User interface and role routing for the Emasoft agent ecosystem |
+| emasoft-chief-of-staff | 1.3.2 | Agent | Multi-agent lifecycle management (spawn, monitor, hibernate, terminate) |
+| emasoft-architect-agent | 1.1.2 | Agent | Architecture design, requirements analysis, and specification creation |
+| emasoft-orchestrator-agent | 1.2.1 | Agent | Task distribution, agent coordination, and progress monitoring |
+| emasoft-integrator-agent | 1.1.2 | Agent | Quality gates, code review, testing, and release management |
+| emasoft-programmer-agent | 1.0.1 | Agent | Code implementation, testing, and debugging (Python, JS/TS, Rust, Go, .NET, C/C++, Swift) |
 
 *Last updated: 2026-02-08*
 
