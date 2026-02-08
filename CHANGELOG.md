@@ -65,6 +65,9 @@ All notable changes to this project will be documented in this file.
 - Update submodules with validator schema checks
 - Update CHANGELOG.md
 - Update claude-plugins-validation to 1.3.1
+- Update emasoft-architect-agent to 1.1.2
+- Update emasoft-programmer-agent to 1.0.1
+- Update CHANGELOG.md
 
 ### Refactor
 
