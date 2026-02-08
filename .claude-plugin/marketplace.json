@@ -167,7 +167,7 @@
       "name": "emasoft-programmer-agent",
       "source": "./emasoft-programmer-agent",
       "description": "General-purpose programmer agent for code implementation, testing, and debugging across multiple languages (Python, JS/TS, Rust, Go, .NET, C/C++, Swift).",
-      "version": "1.0.0",
+      "version": "1.0.1",
       "author": {
         "name": "Emasoft",
         "email": "713559+Emasoft@users.noreply.github.com"
