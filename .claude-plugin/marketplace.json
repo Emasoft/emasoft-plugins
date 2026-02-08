@@ -102,7 +102,7 @@
       "name": "emasoft-integrator-agent",
       "source": "./emasoft-integrator-agent",
       "description": "Quality gates, testing, merging, release candidates - ensures code quality before integration",
-      "version": "1.1.0",
+      "version": "1.1.1",
       "author": {
         "name": "Emasoft",
         "email": "713559+Emasoft@users.noreply.github.com"
