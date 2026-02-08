@@ -1,16 +1,22 @@
 # Emasoft Plugins Marketplace
 
-A collection of high-quality Claude Code plugins focused on productivity and workflow optimization.
+A collection of high-quality Claude Code plugins for multi-agent development workflows, skill activation, and plugin validation.
 
 <!-- PLUGIN-VERSIONS-START -->
 ## Plugin Versions
 
-| Plugin | Version | Description |
-|--------|---------|-------------|
-| perfect-skill-suggester | 1.2.2 | High-accuracy skill activation (88%+) with AI-analyzed keywords |
-| claude-plugins-validation | 1.0.1 | Comprehensive validation suite with multi-language linter/dependency support |
+| Plugin | Version | Category | Description |
+|--------|---------|----------|-------------|
+| perfect-skill-suggester | 1.6.0 | Utility | High-accuracy skill activation (88%+) with AI-analyzed keywords |
+| claude-plugins-validation | 1.3.0 | Utility | Comprehensive validation suite for plugins, skills, hooks, and MCP |
+| emasoft-assistant-manager-agent | 1.1.1 | Agent | User interface and role routing for the Emasoft agent ecosystem |
+| emasoft-chief-of-staff | 1.3.1 | Agent | Multi-agent lifecycle management (spawn, monitor, hibernate, terminate) |
+| emasoft-architect-agent | 1.1.1 | Agent | Architecture design, requirements analysis, and specification creation |
+| emasoft-orchestrator-agent | 1.2.0 | Agent | Task distribution, agent coordination, and progress monitoring |
+| emasoft-integrator-agent | 1.1.1 | Agent | Quality gates, code review, testing, and release management |
+| emasoft-programmer-agent | 1.0.0 | Agent | Code implementation, testing, and debugging (Python, JS/TS, Rust, Go, .NET, C/C++, Swift) |
 
-*Last updated: 2026-01-25*
+*Last updated: 2026-02-08*
 
 <!-- PLUGIN-VERSIONS-END -->
 
@@ -27,25 +33,23 @@ claude plugin marketplace add https://github.com/Emasoft/emasoft-plugins
 ### Step 2: Install Plugin
 
 ```bash
-# Install skill suggester
+# Utility plugins
 claude plugin install perfect-skill-suggester@emasoft-plugins
-
-# Install plugin validator
 claude plugin install claude-plugins-validation@emasoft-plugins
+
+# Emasoft agent ecosystem (install the roles you need)
+claude plugin install emasoft-assistant-manager-agent@emasoft-plugins
+claude plugin install emasoft-chief-of-staff@emasoft-plugins
+claude plugin install emasoft-architect-agent@emasoft-plugins
+claude plugin install emasoft-orchestrator-agent@emasoft-plugins
+claude plugin install emasoft-integrator-agent@emasoft-plugins
+claude plugin install emasoft-programmer-agent@emasoft-plugins
 ```
 
 ### Step 3: Verify Installation
 
 ```bash
 claude plugin list
-```
-
-You should see:
-```
-❯ perfect-skill-suggester@emasoft-plugins
-  Version: 1.0.0
-  Scope: user
-  Status: ✔ enabled
 ```
 
 ### Step 4: Restart Claude Code
@@ -347,6 +351,43 @@ uv run python scripts/validate_marketplace.py /path/to/marketplace --verbose
 | 1 | Critical issues - plugin broken |
 | 2 | Major issues - some features may fail |
 | 3 | Minor issues - warnings only |
+
+---
+
+### Emasoft Agent Ecosystem
+
+The six `emasoft-*` plugins form a complete multi-agent development team. Each plugin defines a role boundary and communicates with other roles via AI Maestro messaging.
+
+```
+USER
+  │
+  ▼
+EAMA (Assistant Manager) ── User interface, role routing
+  │
+  ▼
+ECOS (Chief of Staff) ── Agent lifecycle, coordination
+  │
+  ├── EAA (Architect) ── Design docs, planning
+  ├── EOA (Orchestrator) ── Task distribution, delegation
+  └── EIA (Integrator) ── Code review, quality gates
+                │
+                ▼
+        EPA (Programmer) ── Code implementation
+```
+
+| Plugin | Role | Agents | Skills |
+|--------|------|--------|--------|
+| [emasoft-assistant-manager-agent](./emasoft-assistant-manager-agent/) | User interface, role routing | 2 | 8 |
+| [emasoft-chief-of-staff](./emasoft-chief-of-staff/) | Agent lifecycle management | 10 | 14 |
+| [emasoft-architect-agent](./emasoft-architect-agent/) | Architecture design, planning | 6 | 13 |
+| [emasoft-orchestrator-agent](./emasoft-orchestrator-agent/) | Task distribution, coordination | 6 | 15 |
+| [emasoft-integrator-agent](./emasoft-integrator-agent/) | Code review, quality gates | 11 | 19 |
+| [emasoft-programmer-agent](./emasoft-programmer-agent/) | Code implementation, testing | 1 | 5 |
+
+**Key design principles:**
+- **One plugin per agent instance** — each agent loads ONLY its own plugin
+- **Inter-agent communication** via AI Maestro messaging (not skill sharing)
+- **Role boundaries** enforced by plugin mutual exclusivity
 
 ---
 

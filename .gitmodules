@@ -19,3 +19,6 @@
 [submodule "emasoft-chief-of-staff"]
 	path = emasoft-chief-of-staff
 	url = https://github.com/Emasoft/emasoft-chief-of-staff.git
+[submodule "emasoft-programmer-agent"]
+	path = emasoft-programmer-agent
+	url = https://github.com/Emasoft/emasoft-programmer-agent.git
