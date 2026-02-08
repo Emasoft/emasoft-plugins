@@ -13,6 +13,7 @@ All notable changes to this project will be documented in this file.
 - Correct marketplace validation workflow
 - Revert to string path source format for local submodule marketplace
 - Update all submodules with manifest schema fixes
+- **ci:** Add concurrency group and push retry to update-submodules
 
 ### Documentation
 
@@ -25,6 +26,7 @@ All notable changes to this project will be documented in this file.
 - Add marketplace publishing pipeline automation
 - **marketplace:** Add emasoft-chief-of-staff plugin (ECOS)
 - Add EPA plugin, update all submodules and versions
+- Bump all 8 plugins to latest versions
 
 ### Miscellaneous Tasks
 
@@ -61,6 +63,8 @@ All notable changes to this project will be documented in this file.
 - Update claude-plugins-validation to 1.3.0
 - Update emasoft-assistant-manager-agent to 1.1.1
 - Update submodules with validator schema checks
+- Update CHANGELOG.md
+- Update claude-plugins-validation to 1.3.1
 
 ### Refactor
 
