@@ -24,6 +24,11 @@ on:
 permissions:
   contents: write
 
+# Serialize dispatch events to prevent race conditions on git push
+concurrency:
+  group: update-submodules
+  cancel-in-progress: false
+
 jobs:
   update-submodules:
     runs-on: ubuntu-latest
@@ -105,7 +110,15 @@ jobs:
             git commit -m "chore: sync submodules and marketplace.json"
           fi
 
-          git push
+          # Retry push with pull-rebase in case of concurrent updates
+          for attempt in 1 2 3; do
+            if git push; then
+              echo "Push succeeded on attempt $attempt"
+              break
+            fi
+            echo "Push failed (attempt $attempt), pulling and retrying..."
+            git pull --rebase origin main
+          done
 
       - name: Summary
         run: |
