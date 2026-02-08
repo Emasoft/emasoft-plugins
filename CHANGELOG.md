@@ -22,6 +22,8 @@ All notable changes to this project will be documented in this file.
 - Multi-language validation with linter auto-install
 - Add GitHub Actions workflow and fix pipeline installer
 - Add marketplace publishing pipeline automation
+- **marketplace:** Add emasoft-chief-of-staff plugin (ECOS)
+- Add EPA plugin, update all submodules and versions
 
 ### Miscellaneous Tasks
 
@@ -47,6 +49,10 @@ All notable changes to this project will be documented in this file.
 - Update PSS submodule to v1.3.0 with context-aware suggestions
 - Gitignore all *_dev folders, untrack docs_dev
 - **submodules:** Update all plugins with CI fix
+- Update emasoft-orchestrator-agent to 1.2.0
+- Update emasoft-assistant-manager-agent to 1.1.1
+- Update emasoft-integrator-agent to 1.1.1
+- Update emasoft-chief-of-staff to 1.3.1
 
 ### Refactor
 
