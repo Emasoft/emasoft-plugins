@@ -59,7 +59,7 @@
       "name": "emasoft-architect-agent",
       "source": "./emasoft-architect-agent",
       "description": "Design documents, requirements analysis, architecture decisions - creates specifications for orchestrator",
-      "version": "1.1.1",
+      "version": "1.1.2",
       "author": {
         "name": "Emasoft",
         "email": "713559+Emasoft@users.noreply.github.com"
