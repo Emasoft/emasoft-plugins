@@ -12,6 +12,7 @@ All notable changes to this project will be documented in this file.
 - Use MARKETPLACE_PAT for branch protection bypass
 - Correct marketplace validation workflow
 - Revert to string path source format for local submodule marketplace
+- Update all submodules with manifest schema fixes
 
 ### Documentation
 
@@ -53,6 +54,9 @@ All notable changes to this project will be documented in this file.
 - Update emasoft-assistant-manager-agent to 1.1.1
 - Update emasoft-integrator-agent to 1.1.1
 - Update emasoft-chief-of-staff to 1.3.1
+- Regenerate CHANGELOG.md after rebase
+- Update emasoft-assistant-manager-agent to 1.1.1
+- Update emasoft-orchestrator-agent to 1.2.0
 
 ### Refactor
 
