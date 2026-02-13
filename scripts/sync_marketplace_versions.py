@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 """
-sync_marketplace_versions.py - Sync plugin versions from submodules to marketplace.json
+sync_marketplace_versions.py - Sync plugin versions from plugin sources to marketplace.json
 
 This script reads version information from each plugin's plugin.json and updates
-the corresponding entry in marketplace.json. It's designed to be run after
-git submodule update to keep versions in sync.
+the corresponding entry in marketplace.json. It supports both URL-based sources
+(dict with "type": "git") and path-based sources (string starting with "./").
 
 Usage:
     python sync_marketplace_versions.py [--marketplace PATH] [--dry-run]
@@ -72,7 +72,7 @@ def sync_versions(
     marketplace_path: Path, dry_run: bool = False, verbose: bool = True
 ) -> tuple[bool, list[str]]:
     """
-    Sync plugin versions from submodules to marketplace.json.
+    Sync plugin versions from plugin sources (URL-based or path-based) to marketplace.json.
 
     Args:
         marketplace_path: Path to marketplace.json
@@ -108,7 +108,14 @@ def sync_versions(
         # Determine plugin directory from source
         source = plugin.get("source", f"./{plugin_name}")
         if isinstance(source, str) and source.startswith("./"):
+            # Path-based source (legacy): plugin dir is relative to marketplace
             plugin_dir = marketplace_dir / source[2:]
+        elif isinstance(source, dict) and source.get("type") == "git":
+            # URL-based source: look in OUTPUT_SKILLS/ for local dev copy
+            plugin_dir = marketplace_dir / "OUTPUT_SKILLS" / plugin_name
+            if not plugin_dir.exists():
+                # Also try parent's OUTPUT_SKILLS (if marketplace_dir is a subdirectory)
+                plugin_dir = marketplace_dir.parent / "OUTPUT_SKILLS" / plugin_name
         else:
             plugin_dir = marketplace_dir / plugin_name
 
@@ -147,7 +154,7 @@ def sync_versions(
 def main() -> int:
     """Main entry point."""
     parser = argparse.ArgumentParser(
-        description="Sync plugin versions from submodules to marketplace.json"
+        description="Sync plugin versions from plugin sources to marketplace.json"
     )
     parser.add_argument(
         "--marketplace",

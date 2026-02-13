@@ -66,7 +66,10 @@ def validate_semver(version: str) -> bool:
 def find_plugins(repo_root: Path) -> list[Path]:
     """Find all plugin directories."""
     plugins = []
-    for item in repo_root.iterdir():
+    output_skills = repo_root / "OUTPUT_SKILLS"
+    if not output_skills.exists():
+        return plugins
+    for item in output_skills.iterdir():
         if item.is_dir():
             plugin_json = item / ".claude-plugin" / "plugin.json"
             if plugin_json.exists():
@@ -192,8 +195,13 @@ def validate_marketplace(repo_root: Path) -> list[tuple[str, str]]:
             issues.append(("CRITICAL", "Plugin entry missing 'name'"))
         if not plugin.get("source"):
             issues.append(("CRITICAL", f"Plugin '{plugin.get('name', '?')}' missing 'source'"))
+        elif isinstance(plugin.get("source"), dict):
+            # URL-based source (e.g., {"type": "git", "repository": "..."}) - valid
+            source = plugin.get("source")
+            if not source.get("type") or not source.get("repository"):
+                issues.append(("MAJOR", f"Plugin '{plugin.get('name', '?')}' URL source missing 'type' or 'repository'"))
         elif not isinstance(plugin.get("source"), str):
-            issues.append(("CRITICAL", f"Plugin '{plugin.get('name', '?')}' source must be string path"))
+            issues.append(("CRITICAL", f"Plugin '{plugin.get('name', '?')}' source must be string path or URL object"))
 
     return issues
 
@@ -209,7 +217,12 @@ def check_version_consistency(repo_root: Path) -> list[tuple[str, str]]:
     with open(marketplace_json) as f:
         marketplace = json.load(f)
 
-    marketplace_plugins = {p["name"]: p.get("version") for p in marketplace.get("plugins", [])}
+    # Build lookup: name -> (version, source_type)
+    marketplace_plugins = {}
+    for p in marketplace.get("plugins", []):
+        source = p.get("source", "")
+        is_url = isinstance(source, dict) and source.get("type") == "git"
+        marketplace_plugins[p["name"]] = (p.get("version"), is_url)
 
     for plugin_dir in find_plugins(repo_root):
         plugin_json = plugin_dir / ".claude-plugin" / "plugin.json"
@@ -220,7 +233,10 @@ def check_version_consistency(repo_root: Path) -> list[tuple[str, str]]:
             version = plugin.get("version")
 
             if name in marketplace_plugins:
-                mp_version = marketplace_plugins[name]
+                mp_version, is_url_source = marketplace_plugins[name]
+                # Skip version check for URL-based sources (marketplace tracks remote version)
+                if is_url_source:
+                    continue
                 if mp_version and version != mp_version:
                     issues.append(("MAJOR", f"Version mismatch: {name} is {version} but marketplace has {mp_version}"))
 
@@ -230,14 +246,14 @@ def check_version_consistency(repo_root: Path) -> list[tuple[str, str]]:
 def run_external_validator(repo_root: Path) -> list[tuple[str, str]]:
     """Run external validation scripts if available."""
     issues = []
-    validator = repo_root / "claude-plugins-validation" / "scripts" / "validate_marketplace.py"
+    validator = repo_root / "OUTPUT_SKILLS" / "claude-plugins-validation" / "scripts" / "validate_marketplace.py"
 
     if not validator.exists():
         return issues
 
     _, stdout, stderr = run_command(
         ["uv", "run", "python", str(validator), str(repo_root)],
-        cwd=repo_root / "claude-plugins-validation",
+        cwd=repo_root / "OUTPUT_SKILLS" / "claude-plugins-validation",
         timeout=60
     )
 

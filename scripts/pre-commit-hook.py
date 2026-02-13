@@ -116,13 +116,13 @@ def validate_semver(version: str) -> bool:
 
 def validate_marketplace_json(repo_root: Path) -> tuple[bool, str]:
     """Validate marketplace.json."""
-    validator = repo_root / "claude-plugins-validation" / "scripts" / "validate_marketplace.py"
+    validator = repo_root / "OUTPUT_SKILLS" / "claude-plugins-validation" / "scripts" / "validate_marketplace.py"
     if not validator.exists():
         return True, "validator not found"
 
     code, stdout, stderr = run_command(
         ["uv", "run", "python", str(validator), str(repo_root)],
-        cwd=repo_root / "claude-plugins-validation"
+        cwd=repo_root / "OUTPUT_SKILLS" / "claude-plugins-validation"
     )
     if code == 0:
         return True, ""
@@ -152,12 +152,12 @@ def validate_plugin_json(file_path: Path) -> tuple[bool, str]:
 
 def validate_hooks_json(file_path: Path, repo_root: Path) -> tuple[bool, str]:
     """Validate a hooks.json file."""
-    validator = repo_root / "claude-plugins-validation" / "scripts" / "validate_hook.py"
+    validator = repo_root / "OUTPUT_SKILLS" / "claude-plugins-validation" / "scripts" / "validate_hook.py"
 
     if validator.exists():
         code, _, _ = run_command(
             ["uv", "run", "python", str(validator), str(file_path), "--quiet"],
-            cwd=repo_root / "claude-plugins-validation"
+            cwd=repo_root / "OUTPUT_SKILLS" / "claude-plugins-validation"
         )
         if code == 0:
             return True, ""

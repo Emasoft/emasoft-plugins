@@ -14,6 +14,7 @@ All notable changes to this project will be documented in this file.
 - Revert to string path source format for local submodule marketplace
 - Update all submodules with manifest schema fixes
 - **ci:** Add concurrency group and push retry to update-submodules
+- Update emasoft-chat-history hook to use CLAUDE_PLUGIN_ROOT
 
 ### Documentation
 
@@ -28,6 +29,7 @@ All notable changes to this project will be documented in this file.
 - Add EPA plugin, update all submodules and versions
 - Bump all 8 plugins to latest versions
 - Release perfect-skill-suggester v1.9.0
+- Add emasoft-chat-history plugin to marketplace
 
 ### Miscellaneous Tasks
 
@@ -75,10 +77,23 @@ All notable changes to this project will be documented in this file.
 - Update perfect-skill-suggester to v1.7.1
 - Update perfect-skill-suggester to 1.8.0
 - Update perfect-skill-suggester submodule to v1.8.0
+- Update perfect-skill-suggester to 1.8.0
+- Update perfect-skill-suggester to 1.9.0
+- Update CHANGELOG.md for perfect-skill-suggester v1.9.0
+- Migrate marketplace git to project root
+- Refactor validation architecture + release-plugin.py cleanup
+- Fix subshell variable scoping in marketplace validate.yml
+- Record submodule updates after CI workflow standardization
+- Update claude-plugins-validation to 1.3.1
+- Merge remote CPV update (v1.3.1 submodule pointer)
+- Sync submodules and marketplace.json
+- Merge remote submodule updates (EOA, EIA)
+- Sync submodule pointers to remote HEAD
 
 ### Refactor
 
 - Rebase-safe git hook architecture (v2)
+- Migrate marketplace from submodules to URL-based sources
 
 ## [1.1.0] - 2026-01-23
 

@@ -11,7 +11,10 @@
   "plugins": [
     {
       "name": "perfect-skill-suggester",
-      "source": "./perfect-skill-suggester",
+      "source": {
+        "type": "git",
+        "repository": "https://github.com/Emasoft/perfect-skill-suggester.git"
+      },
       "description": "High-accuracy skill activation (88%+) with AI-analyzed keywords, weighted scoring, synonym expansion, and three-tier confidence routing.",
       "version": "1.9.0",
       "author": {
@@ -34,7 +37,10 @@
     },
     {
       "name": "claude-plugins-validation",
-      "source": "./claude-plugins-validation",
+      "source": {
+        "type": "git",
+        "repository": "https://github.com/Emasoft/claude-plugins-validation.git"
+      },
       "description": "Comprehensive validation suite for Claude Code plugins, marketplaces, hooks, skills, and MCP servers. Includes 5 Python validators, an expert agent, and detailed skill documentation.",
       "version": "1.3.1",
       "author": {
@@ -57,7 +63,10 @@
     },
     {
       "name": "emasoft-architect-agent",
-      "source": "./emasoft-architect-agent",
+      "source": {
+        "type": "git",
+        "repository": "https://github.com/Emasoft/emasoft-architect-agent.git"
+      },
       "description": "Design documents, requirements analysis, architecture decisions - creates specifications for orchestrator",
       "version": "1.1.2",
       "author": {
@@ -79,7 +88,10 @@
     },
     {
       "name": "emasoft-assistant-manager-agent",
-      "source": "./emasoft-assistant-manager-agent",
+      "source": {
+        "type": "git",
+        "repository": "https://github.com/Emasoft/emasoft-assistant-manager-agent.git"
+      },
       "description": "User's right hand - sole interlocutor with user, directs other roles (architect, orchestrator, integrator)",
       "version": "1.1.2",
       "author": {
@@ -100,7 +112,10 @@
     },
     {
       "name": "emasoft-integrator-agent",
-      "source": "./emasoft-integrator-agent",
+      "source": {
+        "type": "git",
+        "repository": "https://github.com/Emasoft/emasoft-integrator-agent.git"
+      },
       "description": "Quality gates, testing, merging, release candidates - ensures code quality before integration",
       "version": "1.1.2",
       "author": {
@@ -122,7 +137,10 @@
     },
     {
       "name": "emasoft-orchestrator-agent",
-      "source": "./emasoft-orchestrator-agent",
+      "source": {
+        "type": "git",
+        "repository": "https://github.com/Emasoft/emasoft-orchestrator-agent.git"
+      },
       "description": "Task distribution, agent coordination, progress monitoring - executes architect's plans via subagents",
       "version": "1.2.1",
       "author": {
@@ -143,7 +161,10 @@
     },
     {
       "name": "emasoft-chief-of-staff",
-      "source": "./emasoft-chief-of-staff",
+      "source": {
+        "type": "git",
+        "repository": "https://github.com/Emasoft/emasoft-chief-of-staff.git"
+      },
       "description": "Multi-agent lifecycle management - spawns, monitors, hibernates, and terminates Claude Code agents across projects",
       "version": "1.3.2",
       "author": {
@@ -165,7 +186,10 @@
     },
     {
       "name": "emasoft-programmer-agent",
-      "source": "./emasoft-programmer-agent",
+      "source": {
+        "type": "git",
+        "repository": "https://github.com/Emasoft/emasoft-programmer-agent.git"
+      },
       "description": "General-purpose programmer agent for code implementation, testing, and debugging across multiple languages (Python, JS/TS, Rust, Go, .NET, C/C++, Swift).",
       "version": "1.0.1",
       "author": {
@@ -187,7 +211,10 @@
     },
     {
       "name": "emasoft-chat-history",
-      "source": "./emasoft-chat-history",
+      "source": {
+        "type": "git",
+        "repository": "https://github.com/Emasoft/emasoft-chat-history.git"
+      },
       "description": "Auto-export chat transcripts before compaction to preserve conversation history using a PreCompact hook.",
       "version": "1.0.0",
       "author": {
