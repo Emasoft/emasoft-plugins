@@ -8,6 +8,8 @@ __pycache__/
 .eggs/
 dist/
 build/
+.venv/
+venv/
 
 # Type checking
 .mypy_cache/
@@ -22,16 +24,59 @@ dmypy.json
 .vscode/
 *.swp
 *.swo
+*~
 
 # OS
 .DS_Store
 Thumbs.db
+
+# Node.js
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# Logs
+*.log
+logs/
+
+# Temp files
+tmp/
+temp/
+*.tmp
 
 # Dev folders (NEVER PUBLISH - development artifacts only)
 # Wildcard pattern catches all: docs_dev, scripts_dev, tests_dev, samples_dev,
 # examples_dev, downloads_dev, libs_dev, builds_dev, etc.
 *_dev/
 
-# Rust
+# Rust build artifacts
 target/
 Cargo.lock
+
+# SERENA (regenerated on index, machine-specific)
+.serena/
+
+# Claude Code local settings (user-specific, not marketplace content)
+.claude/
+
+# Non-marketplace project content (development-only, NOT published)
+/OUTPUT_SKILLS/
+/DOCS/
+/INPUT_SKILLS/
+/DISTILLED_STUFF_FOR_VALIDATION/
+/DISTILLED_STUFF_FOR_VALIDATION_CLEAN/
+/validation_scripts/
+/thoughts/
+/github-elements-marketplace/
+/agents_reports/
+condensation_report*.md
+
+# Local-only files at root (not marketplace content)
+/CLAUDE.md
+/CURRENT_TASK.md
+/*.txt
