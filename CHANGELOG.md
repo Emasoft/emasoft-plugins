@@ -71,6 +71,9 @@ All notable changes to this project will be documented in this file.
 - Update CHANGELOG.md
 - Update 5 submodules to latest versions
 - Update perfect-skill-suggester to 1.7.0
+- Update perfect-skill-suggester to v1.7.1
+- Update perfect-skill-suggester to 1.8.0
+- Update perfect-skill-suggester submodule to v1.8.0
 
 ### Refactor
 
