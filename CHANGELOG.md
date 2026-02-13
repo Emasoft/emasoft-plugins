@@ -27,6 +27,7 @@ All notable changes to this project will be documented in this file.
 - **marketplace:** Add emasoft-chief-of-staff plugin (ECOS)
 - Add EPA plugin, update all submodules and versions
 - Bump all 8 plugins to latest versions
+- Release perfect-skill-suggester v1.9.0
 
 ### Miscellaneous Tasks
 
