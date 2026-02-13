@@ -31,7 +31,9 @@ Options:
 """
 
 import json
+import os
 import re
+import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -171,71 +173,48 @@ def suggest_versions(current: str) -> tuple[str, str, str]:
 
 
 def find_universal_validator(repo_root: Path) -> Path | None:
-    """Find the claude-plugins-validation universal validator script.
-
-    Prefers the sibling development copy (always latest) over the marketplace
-    submodule copy (may be stale).
-
-    Search order:
-      1. ../claude-plugins-validation/scripts/validate_plugin.py (dev env)
-      2. ./claude-plugins-validation/scripts/validate_plugin.py (submodule)
-    """
-    # Development environment: sibling folder to the marketplace repo
-    dev_validator = (
-        repo_root.parent
-        / "claude-plugins-validation"
-        / "scripts"
-        / "validate_plugin.py"
-    )
-    if dev_validator.exists():
-        return dev_validator
-
-    # Submodule inside marketplace repo
-    submodule_validator = (
-        repo_root / "claude-plugins-validation" / "scripts" / "validate_plugin.py"
-    )
-    if submodule_validator.exists():
-        return submodule_validator
-
-    return None
+    """Find the claude-plugins-validation universal validator script."""
+    validator = repo_root / "claude-plugins-validation" / "scripts" / "validate_plugin.py"
+    return validator if validator.exists() else None
 
 
 def find_universal_validator_cwd(repo_root: Path) -> Path | None:
-    """Find the working directory for running the universal validator.
+    """Find the working directory for running the universal validator."""
+    cpv_dir = repo_root / "claude-plugins-validation"
+    return cpv_dir if (cpv_dir / "scripts" / "validate_plugin.py").exists() else None
 
-    Must match the validator found by find_universal_validator().
+
+def dereference_symlinks(plugin_dir: Path) -> dict[Path, Path]:
+    """Replace symlinks with real file copies for git commit (publishing).
+
+    When publishing plugins to GitHub, symlinks must be dereferenced because
+    each plugin repo must be self-contained. This copies the real files in
+    place of symlinks, returning a map to restore them after commit.
     """
-    dev_dir = repo_root.parent / "claude-plugins-validation"
-    if (dev_dir / "scripts" / "validate_plugin.py").exists():
-        return dev_dir
-
-    submodule_dir = repo_root / "claude-plugins-validation"
-    if (submodule_dir / "scripts" / "validate_plugin.py").exists():
-        return submodule_dir
-
-    return None
-
-
-def find_plugin_internal_validator(plugin_dir: Path) -> Path | None:
-    """Find plugin's own internal validator (e.g., pss_validate_plugin.py).
-
-    Each Emasoft plugin has its own validator named <prefix>_validate_plugin.py
-    in its scripts/ directory.
-    """
+    symlink_map: dict[Path, Path] = {}
     scripts_dir = plugin_dir / "scripts"
     if not scripts_dir.exists():
-        return None
-    candidates = list(scripts_dir.glob("*_validate_plugin.py"))
-    if len(candidates) == 1:
-        return candidates[0]
-    if not candidates:
-        return None
-    # If multiple matches, prefer the one matching the plugin directory name
-    plugin_name = plugin_dir.name
-    for c in candidates:
-        if plugin_name.replace("-", "_") in c.name:
-            return c
-    return candidates[0]
+        return symlink_map
+    for f in scripts_dir.iterdir():
+        if f.is_symlink():
+            target = f.resolve()
+            symlink_map[f] = target
+            f.unlink()
+            shutil.copy2(target, f)
+    return symlink_map
+
+
+def restore_symlinks(symlink_map: dict[Path, Path]) -> None:
+    """Restore symlinks after publishing commit."""
+    for link_path, target in symlink_map.items():
+        if link_path.exists():
+            link_path.unlink()
+        # Compute relative path from link's parent to target
+        try:
+            rel_target = target.relative_to(link_path.parent)
+        except ValueError:
+            rel_target = Path(os.path.relpath(target, link_path.parent))
+        link_path.symlink_to(rel_target)
 
 
 def show_usage(repo_root: Path) -> None:
@@ -416,165 +395,6 @@ def release_single_plugin(
             "(claude-plugins-validation/scripts/validate_plugin.py)"
         )
 
-    # --- Run plugin's own internal validator (if available) ---
-    internal_validator = find_plugin_internal_validator(plugin_dir)
-    if internal_validator:
-        log_step(f"Running plugin's internal validator ({internal_validator.name})...")
-        code, stdout, stderr = run_command(
-            ["uv", "run", "python", str(internal_validator)],
-            cwd=plugin_dir,
-        )
-        if code == 0:
-            log_success("Plugin internal validation passed")
-        elif code == 1:
-            log_error("Plugin internal validation: CRITICAL issues")
-            print(stdout + stderr)
-            if not prompt_or_auto(
-                "Continue despite critical validation errors? (y/N): ",
-                auto_yes,
-                dry_run,
-                strict,
-                "critical validation issues found",
-            ):
-                return False, ""
-        else:
-            log_warning(f"Plugin internal validation: issues (exit code {code})")
-            print(stdout + stderr)
-            if strict:
-                log_error("Strict mode: validation issues are not allowed")
-                return False, ""
-
-    # --- Run skill validation if skills exist ---
-    skills_dir = plugin_dir / "skills"
-    if skills_dir.exists():
-        log_step("Running skill validation...")
-        skill_validator_path = None
-        skill_validator_cwd: Path | None = None
-        # Prefer dev env validator, fall back to submodule
-        dev_sv = (
-            repo_root.parent
-            / "claude-plugins-validation"
-            / "scripts"
-            / "validate_skill.py"
-        )
-        sub_sv = (
-            repo_root / "claude-plugins-validation" / "scripts" / "validate_skill.py"
-        )
-        if dev_sv.exists():
-            skill_validator_path = dev_sv
-            skill_validator_cwd = repo_root.parent / "claude-plugins-validation"
-        elif sub_sv.exists():
-            skill_validator_path = sub_sv
-            skill_validator_cwd = repo_root / "claude-plugins-validation"
-
-        if skill_validator_path:
-            for skill_subdir in skills_dir.iterdir():
-                if skill_subdir.is_dir() and (skill_subdir / "SKILL.md").exists():
-                    s_name = skill_subdir.name
-                    code, _, _ = run_command(
-                        [
-                            "uv",
-                            "run",
-                            "python",
-                            str(skill_validator_path),
-                            str(skill_subdir),
-                        ],
-                        cwd=skill_validator_cwd,
-                    )
-                    if code == 0:
-                        log_success(f"Skill '{s_name}' validation passed")
-                    else:
-                        log_warning(f"Skill '{s_name}' validation has issues")
-                        if strict:
-                            log_error(f"Strict mode: skill '{s_name}' has issues")
-                            return False, ""
-
-    # --- Run hook validation if hooks exist ---
-    hooks_json = plugin_dir / "hooks" / "hooks.json"
-    if hooks_json.exists():
-        log_step("Running hook validation...")
-        dev_hv = (
-            repo_root.parent
-            / "claude-plugins-validation"
-            / "scripts"
-            / "validate_hook.py"
-        )
-        sub_hv = (
-            repo_root / "claude-plugins-validation" / "scripts" / "validate_hook.py"
-        )
-        if dev_hv.exists():
-            hook_validator = dev_hv
-            hook_validator_cwd = repo_root.parent / "claude-plugins-validation"
-        elif sub_hv.exists():
-            hook_validator = sub_hv
-            hook_validator_cwd = repo_root / "claude-plugins-validation"
-        else:
-            hook_validator = None
-            hook_validator_cwd = None
-
-        if hook_validator and hook_validator_cwd:
-            code, _, _ = run_command(
-                [
-                    "uv",
-                    "run",
-                    "python",
-                    str(hook_validator),
-                    str(hooks_json),
-                ],
-                cwd=hook_validator_cwd,
-            )
-            if code == 0:
-                log_success("Hook validation passed")
-            else:
-                log_warning("Hook validation has issues")
-                if strict:
-                    log_error("Strict mode: hook validation has issues")
-                    return False, ""
-
-    # --- Lint Python scripts ---
-    plugin_scripts_dir = plugin_dir / "scripts"
-    py_scripts = (
-        list(plugin_scripts_dir.glob("*.py")) if plugin_scripts_dir.exists() else []
-    )
-    if py_scripts:
-        log_step("Linting Python scripts...")
-        code, stdout, stderr = run_command(
-            ["uv", "run", "ruff", "check"] + [str(f) for f in py_scripts],
-            cwd=plugin_dir,
-        )
-        if code == 0:
-            log_success("Python linting passed")
-        else:
-            log_warning("Python linting has issues")
-            print(stdout + stderr)
-            if not prompt_or_auto(
-                "Continue despite linting errors? (y/N): ",
-                auto_yes,
-                dry_run,
-                strict,
-                "Python linting issues found",
-            ):
-                return False, ""
-
-    # --- Lint Bash scripts ---
-    sh_scripts = (
-        list(plugin_scripts_dir.glob("*.sh")) if plugin_scripts_dir.exists() else []
-    )
-    if sh_scripts:
-        log_step("Linting Bash scripts...")
-        code, _, _ = run_command(["which", "shellcheck"])
-        if code == 0:
-            code, stdout, stderr = run_command(
-                ["shellcheck"] + [str(f) for f in sh_scripts]
-            )
-            if code == 0:
-                log_success("Bash linting passed")
-            else:
-                log_warning("Bash linting has issues")
-                if strict:
-                    log_error("Strict mode: bash linting issues found")
-                    return False, ""
-
     # --- Dry run stops here ---
     if dry_run:
         print()
@@ -586,6 +406,11 @@ def release_single_plugin(
     log_step("Updating plugin.json version...")
     update_plugin_version(plugin_json_path, new_version)
     log_success(f"Updated version to {new_version}")
+
+    # Dereference symlinks for publishing (GitHub needs real files, not symlinks)
+    symlink_map = dereference_symlinks(plugin_dir)
+    if symlink_map:
+        log_success(f"Dereferenced {len(symlink_map)} symlinks for publishing")
 
     log_step("Committing changes in plugin submodule...")
     run_command(["git", "add", "-A"], cwd=plugin_dir)
@@ -622,6 +447,11 @@ def release_single_plugin(
         cwd=plugin_dir,
     )
     log_success(f"Created tag v{new_version}")
+
+    # Restore symlinks after commit+tag
+    if symlink_map:
+        restore_symlinks(symlink_map)
+        log_success(f"Restored {len(symlink_map)} symlinks")
 
     return True, new_version
 
@@ -758,6 +588,23 @@ def main() -> int:
             cwd=repo_root,
         )
         log_success("Marketplace.json updated")
+
+    # --- Validate marketplace structure ---
+    log_step("Validating marketplace structure...")
+    marketplace_validator = repo_root / "claude-plugins-validation" / "scripts" / "validate_marketplace.py"
+    if marketplace_validator.exists():
+        marketplace_cwd = repo_root / "claude-plugins-validation"
+        code, stdout, stderr = run_command(
+            ["uv", "run", "python", str(marketplace_validator), str(repo_root)],
+            cwd=marketplace_cwd,
+        )
+        if code == 0:
+            log_success("Marketplace validation passed")
+        else:
+            log_warning("Marketplace validation has issues")
+            print(stdout + stderr)
+    else:
+        log_warning("Marketplace validator not found")
 
     # --- Commit marketplace (single commit for all plugins) ---
     released_list = ", ".join(f"{n} v{v}" for n, v in succeeded)
