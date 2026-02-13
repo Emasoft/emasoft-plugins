@@ -2,11 +2,32 @@
 """release-plugin.py - Comprehensive plugin release workflow with validations.
 
 Usage:
-    python scripts/release-plugin.py <plugin-name> <version> [--dry-run]
+    python scripts/release-plugin.py [plugin-name ...] [options]
 
-Example:
-    python scripts/release-plugin.py perfect-skill-suggester 1.2.0
-    python scripts/release-plugin.py claude-plugins-validation 1.2.0 --dry-run
+If no plugin names are specified, all plugins in the marketplace are released.
+When releasing multiple plugins, each gets an auto-incremented patch version.
+
+Examples:
+    # Release one plugin with explicit version
+    python scripts/release-plugin.py perfect-skill-suggester --version 1.2.0
+
+    # Release two plugins, auto-patch, non-interactive
+    python scripts/release-plugin.py perfect-skill-suggester claude-plugins-validation -y
+
+    # Dry-run release all plugins
+    python scripts/release-plugin.py --yes --dry-run
+
+    # Strict mode: fail on any validation warning
+    python scripts/release-plugin.py perfect-skill-suggester -y --strict
+
+    # Backward-compatible: positional version (single plugin only)
+    python scripts/release-plugin.py perfect-skill-suggester 2.0.0 -y
+
+Options:
+    --version X.Y.Z  Explicit version (only valid for single plugin)
+    --dry-run        Show what would be done without making changes
+    --yes, -y        Non-interactive mode (auto-confirm all prompts, auto-patch)
+    --strict         Fail on any validation warning or linting issue
 """
 
 import json
@@ -47,19 +68,17 @@ def run_command(
     cmd: list[str],
     cwd: Path | None = None,
     capture: bool = True,
-    check: bool = False
+    check: bool = False,
 ) -> tuple[int, str, str]:
     """Run a command and return exit code, stdout, stderr."""
     try:
         result = subprocess.run(
-            cmd,
-            cwd=cwd,
-            capture_output=capture,
-            text=True,
-            timeout=120
+            cmd, cwd=cwd, capture_output=capture, text=True, timeout=120
         )
         if check and result.returncode != 0:
-            raise subprocess.CalledProcessError(result.returncode, cmd, result.stdout, result.stderr)
+            raise subprocess.CalledProcessError(
+                result.returncode, cmd, result.stdout, result.stderr
+            )
         return result.returncode, result.stdout, result.stderr
     except subprocess.TimeoutExpired:
         return 1, "", "Command timed out"
@@ -68,21 +87,15 @@ def run_command(
 
 
 def validate_semver(version: str) -> bool:
-    """Validate semver format."""
+    """Validate semver format (X.Y.Z with optional pre-release/build)."""
     pattern = r"^\d+\.\d+\.\d+(-[a-zA-Z0-9.]+)?(\+[a-zA-Z0-9.]+)?$"
     return bool(re.match(pattern, version))
 
 
 def compare_versions(v1: str, v2: str) -> int:
-    """Compare two semver versions.
+    """Compare two semver versions. Returns -1 if v1<v2, 0 if equal, 1 if v1>v2."""
 
-    Returns:
-        -1 if v1 < v2
-        0 if v1 == v2
-        1 if v1 > v2
-    """
     def parse(v: str) -> tuple[int, ...]:
-        # Remove pre-release/build metadata for comparison
         base = v.split("-")[0].split("+")[0]
         return tuple(int(x) for x in base.split("."))
 
@@ -95,7 +108,11 @@ def compare_versions(v1: str, v2: str) -> int:
 
 
 def find_plugins(repo_root: Path) -> dict[str, Path]:
-    """Find all plugin directories and return as name -> path mapping."""
+    """Find all plugin directories in the marketplace repo root.
+
+    A plugin directory is any subdirectory containing .claude-plugin/plugin.json.
+    Returns a dict mapping plugin name to its directory path.
+    """
     plugins = {}
     for item in repo_root.iterdir():
         if item.is_dir():
@@ -108,8 +125,11 @@ def find_plugins(repo_root: Path) -> dict[str, Path]:
 def get_current_version(plugin_json_path: Path) -> str:
     """Get current version from plugin.json."""
     with open(plugin_json_path) as f:
-        data = json.load(f)
-    return data.get("version", "0.0.0")
+        data: dict[str, object] = json.load(f)
+    version = data.get("version", "0.0.0")
+    if not isinstance(version, str):
+        return "0.0.0"
+    return version
 
 
 def update_plugin_version(plugin_json_path: Path, new_version: str) -> None:
@@ -138,217 +158,428 @@ def check_git_tag_exists(tag: str, path: Path) -> bool:
 def suggest_versions(current: str) -> tuple[str, str, str]:
     """Suggest next patch, minor, and major versions."""
     parts = current.split(".")
-    major, minor, patch = int(parts[0]), int(parts[1]), int(parts[2].split("-")[0])
+    major, minor, patch = (
+        int(parts[0]),
+        int(parts[1]),
+        int(parts[2].split("-")[0]),
+    )
     return (
         f"{major}.{minor}.{patch + 1}",
         f"{major}.{minor + 1}.0",
-        f"{major + 1}.0.0"
+        f"{major + 1}.0.0",
     )
+
+
+def find_universal_validator(repo_root: Path) -> Path | None:
+    """Find the claude-plugins-validation universal validator script.
+
+    Prefers the sibling development copy (always latest) over the marketplace
+    submodule copy (may be stale).
+
+    Search order:
+      1. ../claude-plugins-validation/scripts/validate_plugin.py (dev env)
+      2. ./claude-plugins-validation/scripts/validate_plugin.py (submodule)
+    """
+    # Development environment: sibling folder to the marketplace repo
+    dev_validator = (
+        repo_root.parent
+        / "claude-plugins-validation"
+        / "scripts"
+        / "validate_plugin.py"
+    )
+    if dev_validator.exists():
+        return dev_validator
+
+    # Submodule inside marketplace repo
+    submodule_validator = (
+        repo_root / "claude-plugins-validation" / "scripts" / "validate_plugin.py"
+    )
+    if submodule_validator.exists():
+        return submodule_validator
+
+    return None
+
+
+def find_universal_validator_cwd(repo_root: Path) -> Path | None:
+    """Find the working directory for running the universal validator.
+
+    Must match the validator found by find_universal_validator().
+    """
+    dev_dir = repo_root.parent / "claude-plugins-validation"
+    if (dev_dir / "scripts" / "validate_plugin.py").exists():
+        return dev_dir
+
+    submodule_dir = repo_root / "claude-plugins-validation"
+    if (submodule_dir / "scripts" / "validate_plugin.py").exists():
+        return submodule_dir
+
+    return None
+
+
+def find_plugin_internal_validator(plugin_dir: Path) -> Path | None:
+    """Find plugin's own internal validator (e.g., pss_validate_plugin.py).
+
+    Each Emasoft plugin has its own validator named <prefix>_validate_plugin.py
+    in its scripts/ directory.
+    """
+    scripts_dir = plugin_dir / "scripts"
+    if not scripts_dir.exists():
+        return None
+    candidates = list(scripts_dir.glob("*_validate_plugin.py"))
+    if len(candidates) == 1:
+        return candidates[0]
+    if not candidates:
+        return None
+    # If multiple matches, prefer the one matching the plugin directory name
+    plugin_name = plugin_dir.name
+    for c in candidates:
+        if plugin_name.replace("-", "_") in c.name:
+            return c
+    return candidates[0]
 
 
 def show_usage(repo_root: Path) -> None:
     """Show usage information."""
-    print("Usage: python scripts/release-plugin.py <plugin-name> <version> [--dry-run]")
+    print("Usage: python scripts/release-plugin.py [plugin-name ...] [options]")
+    print()
+    print("If no plugin names given, all plugins are released.")
     print()
     print("Available plugins:")
 
     plugins = find_plugins(repo_root)
     for name, path in sorted(plugins.items()):
         plugin_json = path / ".claude-plugin" / "plugin.json"
-        version = get_current_version(plugin_json) if plugin_json.exists() else "unknown"
+        version = (
+            get_current_version(plugin_json) if plugin_json.exists() else "unknown"
+        )
         print(f"  - {name} (current: {version})")
 
     print()
     print("Options:")
-    print("  --dry-run    Show what would be done without making changes")
+    print("  --version X.Y.Z  Explicit version (single plugin only)")
+    print("  --dry-run        Show what would be done without making changes")
+    print(
+        "  --yes, -y        Non-interactive mode "
+        "(auto-confirm, default to patch version)"
+    )
+    print("  --strict         Fail on any validation warning or linting issue")
 
 
-def main() -> int:
-    """Main release function."""
-    script_dir = Path(__file__).parent
-    repo_root = script_dir.parent
+def prompt_or_auto(
+    message: str,
+    auto_yes: bool,
+    dry_run: bool,
+    strict: bool,
+    strict_reason: str,
+) -> bool:
+    """Ask for confirmation or auto-decide based on flags.
 
-    # Parse arguments
-    args = sys.argv[1:]
-    dry_run = "--dry-run" in args
-    args = [a for a in args if a != "--dry-run"]
+    Returns True if execution should continue, False if it should stop.
+    """
+    if strict:
+        log_error(f"Strict mode: {strict_reason}")
+        return False
+    if auto_yes:
+        log_warning(f"Auto-continuing (-y flag): {strict_reason}")
+        return True
+    if dry_run:
+        return True
+    confirm = input(message)
+    return confirm.lower() == "y"
 
-    if len(args) < 1:
-        show_usage(repo_root)
-        return 1
 
-    plugin_name = args[0]
-    new_version = args[1] if len(args) > 1 else ""
+def release_single_plugin(
+    plugin_name: str,
+    plugin_dir: Path,
+    new_version: str,
+    repo_root: Path,
+    dry_run: bool,
+    auto_yes: bool,
+    strict: bool,
+) -> tuple[bool, str]:
+    """Release a single plugin.
 
-    # Find plugin
-    plugins = find_plugins(repo_root)
-    if plugin_name not in plugins:
-        log_error(f"Plugin not found: {plugin_name}")
-        show_usage(repo_root)
-        return 1
+    Runs all validations, bumps version, commits and tags in the plugin
+    submodule. Does NOT touch the marketplace repo (that happens in main).
 
-    plugin_dir = plugins[plugin_name]
+    Args:
+        plugin_name: Name of the plugin directory.
+        plugin_dir: Path to the plugin directory.
+        new_version: Explicit version string, or "" for auto-patch.
+        repo_root: Path to the marketplace repo root.
+        dry_run: If True, do not make any changes.
+        auto_yes: If True, skip all interactive prompts.
+        strict: If True, fail on any validation warning.
+
+    Returns:
+        (success, final_version) tuple.
+    """
     plugin_json_path = plugin_dir / ".claude-plugin" / "plugin.json"
-
-    # Get current version
     current_version = get_current_version(plugin_json_path)
 
+    print()
     print("=" * 60)
-    print("Plugin Release Workflow")
+    print(f"Releasing: {plugin_name}")
     print("=" * 60)
-    print(f"Plugin:          {plugin_name}")
-    print(f"Current Version: {current_version}")
-    print(f"New Version:     {new_version or '(auto-detect)'}")
-    print(f"Dry Run:         {dry_run}")
+    print(f"  Current Version: {current_version}")
+    print(f"  New Version:     {new_version or '(auto-patch)'}")
     print("=" * 60)
 
-    # If no version specified, suggest versions
+    # --- Determine version ---
     if not new_version:
         patch, minor, major = suggest_versions(current_version)
-        print()
-        print("No version specified. Suggested versions:")
-        print(f"  Patch (bug fixes):     {patch}")
-        print(f"  Minor (new features):  {minor}")
-        print(f"  Major (breaking):      {major}")
-        print()
-        new_version = input(f"Enter new version (or press Enter for {patch}): ").strip()
-        if not new_version:
+        if auto_yes:
             new_version = patch
+            log_success(f"Auto-selected patch version: {new_version}")
+        else:
+            print()
+            print("No version specified. Suggested versions:")
+            print(f"  Patch (bug fixes):     {patch}")
+            print(f"  Minor (new features):  {minor}")
+            print(f"  Major (breaking):      {major}")
+            print()
+            new_version = input(
+                f"Enter new version (or press Enter for {patch}): "
+            ).strip()
+            if not new_version:
+                new_version = patch
 
-    # Validate version format
+    # --- Validate version format ---
     log_step("Validating version format...")
     if not validate_semver(new_version):
         log_error(f"Invalid semver format: {new_version}")
         print("Expected format: X.Y.Z (e.g., 1.2.3)")
-        return 1
+        return False, ""
     log_success(f"Version format valid: {new_version}")
 
-    # Check version increment
+    # --- Check version increment ---
     log_step("Checking version increment...")
     cmp = compare_versions(new_version, current_version)
     if cmp <= 0:
-        log_error(f"New version ({new_version}) must be greater than current version ({current_version})")
-        return 1
-    log_success(f"Version increment valid: {current_version} → {new_version}")
+        log_error(
+            f"New version ({new_version}) must be greater than "
+            f"current version ({current_version})"
+        )
+        return False, ""
+    log_success(f"Version increment valid: {current_version} -> {new_version}")
 
-    # Check for uncommitted changes
+    # --- Check for uncommitted changes ---
     log_step("Checking for uncommitted changes in plugin...")
     is_clean, changes = check_git_status(plugin_dir)
     if not is_clean:
         log_warning(f"Uncommitted changes detected in {plugin_name}:")
         print(changes)
-        if not dry_run:
-            confirm = input("Continue anyway? (y/N): ")
-            if confirm.lower() != "y":
-                log_error("Aborted by user")
-                return 1
+        if not prompt_or_auto(
+            "Continue anyway? (y/N): ",
+            auto_yes,
+            dry_run,
+            strict,
+            "uncommitted changes are not allowed",
+        ):
+            return False, ""
     else:
         log_success("Working directory clean")
 
-    # Check if tag already exists
+    # --- Check if tag already exists ---
     log_step(f"Checking if tag v{new_version} already exists...")
     if check_git_tag_exists(f"v{new_version}", plugin_dir):
         log_error(f"Tag v{new_version} already exists in {plugin_name}")
-        return 1
+        return False, ""
     log_success(f"Tag v{new_version} is available")
 
-    # Run plugin validation
-    log_step("Running plugin validation...")
-    validator = repo_root / "claude-plugins-validation" / "scripts" / "validate_plugin.py"
-    if validator.exists():
+    # --- Run universal validator from claude-plugins-validation ---
+    log_step("Running universal plugin validation (claude-plugins-validation)...")
+    validator = find_universal_validator(repo_root)
+    validator_cwd = find_universal_validator_cwd(repo_root)
+    if validator and validator_cwd:
+        log_success(f"Using validator: {validator}")
         code, stdout, stderr = run_command(
             ["uv", "run", "python", str(validator), str(plugin_dir)],
-            cwd=repo_root / "claude-plugins-validation"
+            cwd=validator_cwd,
         )
         if code == 0:
-            log_success("Plugin validation passed")
+            log_success("Universal plugin validation passed")
         else:
-            log_error("Plugin validation failed")
+            log_error("Universal plugin validation failed")
             print(stdout + stderr)
-            if not dry_run:
-                confirm = input("Continue despite validation errors? (y/N): ")
-                if confirm.lower() != "y":
-                    return 1
+            if not prompt_or_auto(
+                "Continue despite validation errors? (y/N): ",
+                auto_yes,
+                dry_run,
+                strict,
+                "validation errors found",
+            ):
+                return False, ""
     else:
-        log_warning("Validation script not found, skipping validation")
+        log_warning(
+            "Universal validator not found "
+            "(claude-plugins-validation/scripts/validate_plugin.py)"
+        )
 
-    # Run skill validation if skills exist
+    # --- Run plugin's own internal validator (if available) ---
+    internal_validator = find_plugin_internal_validator(plugin_dir)
+    if internal_validator:
+        log_step(f"Running plugin's internal validator ({internal_validator.name})...")
+        code, stdout, stderr = run_command(
+            ["uv", "run", "python", str(internal_validator)],
+            cwd=plugin_dir,
+        )
+        if code == 0:
+            log_success("Plugin internal validation passed")
+        elif code == 1:
+            log_error("Plugin internal validation: CRITICAL issues")
+            print(stdout + stderr)
+            if not prompt_or_auto(
+                "Continue despite critical validation errors? (y/N): ",
+                auto_yes,
+                dry_run,
+                strict,
+                "critical validation issues found",
+            ):
+                return False, ""
+        else:
+            log_warning(f"Plugin internal validation: issues (exit code {code})")
+            print(stdout + stderr)
+            if strict:
+                log_error("Strict mode: validation issues are not allowed")
+                return False, ""
+
+    # --- Run skill validation if skills exist ---
     skills_dir = plugin_dir / "skills"
     if skills_dir.exists():
         log_step("Running skill validation...")
-        skill_validator = repo_root / "claude-plugins-validation" / "scripts" / "validate_skill.py"
-        if skill_validator.exists():
-            for skill_dir in skills_dir.iterdir():
-                if skill_dir.is_dir() and (skill_dir / "SKILL.md").exists():
-                    skill_name = skill_dir.name
+        skill_validator_path = None
+        skill_validator_cwd: Path | None = None
+        # Prefer dev env validator, fall back to submodule
+        dev_sv = (
+            repo_root.parent
+            / "claude-plugins-validation"
+            / "scripts"
+            / "validate_skill.py"
+        )
+        sub_sv = (
+            repo_root / "claude-plugins-validation" / "scripts" / "validate_skill.py"
+        )
+        if dev_sv.exists():
+            skill_validator_path = dev_sv
+            skill_validator_cwd = repo_root.parent / "claude-plugins-validation"
+        elif sub_sv.exists():
+            skill_validator_path = sub_sv
+            skill_validator_cwd = repo_root / "claude-plugins-validation"
+
+        if skill_validator_path:
+            for skill_subdir in skills_dir.iterdir():
+                if skill_subdir.is_dir() and (skill_subdir / "SKILL.md").exists():
+                    s_name = skill_subdir.name
                     code, _, _ = run_command(
-                        ["uv", "run", "python", str(skill_validator), str(skill_dir)],
-                        cwd=repo_root / "claude-plugins-validation"
+                        [
+                            "uv",
+                            "run",
+                            "python",
+                            str(skill_validator_path),
+                            str(skill_subdir),
+                        ],
+                        cwd=skill_validator_cwd,
                     )
                     if code == 0:
-                        log_success(f"Skill '{skill_name}' validation passed")
+                        log_success(f"Skill '{s_name}' validation passed")
                     else:
-                        log_warning(f"Skill '{skill_name}' validation has issues")
+                        log_warning(f"Skill '{s_name}' validation has issues")
+                        if strict:
+                            log_error(f"Strict mode: skill '{s_name}' has issues")
+                            return False, ""
 
-    # Run hook validation if hooks exist
+    # --- Run hook validation if hooks exist ---
     hooks_json = plugin_dir / "hooks" / "hooks.json"
     if hooks_json.exists():
         log_step("Running hook validation...")
-        hook_validator = repo_root / "claude-plugins-validation" / "scripts" / "validate_hook.py"
-        if hook_validator.exists():
+        dev_hv = (
+            repo_root.parent
+            / "claude-plugins-validation"
+            / "scripts"
+            / "validate_hook.py"
+        )
+        sub_hv = (
+            repo_root / "claude-plugins-validation" / "scripts" / "validate_hook.py"
+        )
+        if dev_hv.exists():
+            hook_validator = dev_hv
+            hook_validator_cwd = repo_root.parent / "claude-plugins-validation"
+        elif sub_hv.exists():
+            hook_validator = sub_hv
+            hook_validator_cwd = repo_root / "claude-plugins-validation"
+        else:
+            hook_validator = None
+            hook_validator_cwd = None
+
+        if hook_validator and hook_validator_cwd:
             code, _, _ = run_command(
-                ["uv", "run", "python", str(hook_validator), str(hooks_json)],
-                cwd=repo_root / "claude-plugins-validation"
+                [
+                    "uv",
+                    "run",
+                    "python",
+                    str(hook_validator),
+                    str(hooks_json),
+                ],
+                cwd=hook_validator_cwd,
             )
             if code == 0:
                 log_success("Hook validation passed")
             else:
                 log_warning("Hook validation has issues")
+                if strict:
+                    log_error("Strict mode: hook validation has issues")
+                    return False, ""
 
-    # Lint Python scripts
-    scripts_dir = plugin_dir / "scripts"
-    py_scripts = list(scripts_dir.glob("*.py")) if scripts_dir.exists() else []
+    # --- Lint Python scripts ---
+    plugin_scripts_dir = plugin_dir / "scripts"
+    py_scripts = (
+        list(plugin_scripts_dir.glob("*.py")) if plugin_scripts_dir.exists() else []
+    )
     if py_scripts:
         log_step("Linting Python scripts...")
         code, stdout, stderr = run_command(
             ["uv", "run", "ruff", "check"] + [str(f) for f in py_scripts],
-            cwd=plugin_dir
+            cwd=plugin_dir,
         )
         if code == 0:
             log_success("Python linting passed")
         else:
             log_warning("Python linting has issues")
-            if not dry_run:
-                confirm = input("Continue despite linting errors? (y/N): ")
-                if confirm.lower() != "y":
-                    return 1
+            print(stdout + stderr)
+            if not prompt_or_auto(
+                "Continue despite linting errors? (y/N): ",
+                auto_yes,
+                dry_run,
+                strict,
+                "Python linting issues found",
+            ):
+                return False, ""
 
-    # Lint Bash scripts
-    sh_scripts = list(scripts_dir.glob("*.sh")) if scripts_dir.exists() else []
+    # --- Lint Bash scripts ---
+    sh_scripts = (
+        list(plugin_scripts_dir.glob("*.sh")) if plugin_scripts_dir.exists() else []
+    )
     if sh_scripts:
         log_step("Linting Bash scripts...")
         code, _, _ = run_command(["which", "shellcheck"])
         if code == 0:
-            code, _, _ = run_command(["shellcheck"] + [str(f) for f in sh_scripts])
+            code, stdout, stderr = run_command(
+                ["shellcheck"] + [str(f) for f in sh_scripts]
+            )
             if code == 0:
                 log_success("Bash linting passed")
             else:
                 log_warning("Bash linting has issues")
+                if strict:
+                    log_error("Strict mode: bash linting issues found")
+                    return False, ""
 
+    # --- Dry run stops here ---
     if dry_run:
         print()
-        print("=" * 60)
-        print("DRY RUN COMPLETE - No changes made")
-        print("=" * 60)
-        print()
-        print("The following actions would be performed:")
-        print(f"  1. Update {plugin_name}/plugin.json version to {new_version}")
-        print(f"  2. Commit changes in {plugin_name} submodule")
-        print(f"  3. Create tag v{new_version} in {plugin_name}")
-        print("  4. Sync version to marketplace.json")
-        print("  5. Commit and tag marketplace")
-        print()
-        return 0
+        print(f"  DRY RUN for {plugin_name}: would release v{new_version}")
+        return True, new_version
 
     # === MAKE CHANGES ===
 
@@ -359,13 +590,18 @@ def main() -> int:
     log_step("Committing changes in plugin submodule...")
     run_command(["git", "add", "-A"], cwd=plugin_dir)
     code, _, _ = run_command(
-        ["git", "commit", "-m", f"feat({plugin_name}): bump version to {new_version}"],
-        cwd=plugin_dir
+        [
+            "git",
+            "commit",
+            "-m",
+            f"feat({plugin_name}): bump version to {new_version}",
+        ],
+        cwd=plugin_dir,
     )
     if code != 0:
         log_warning("Nothing to commit in submodule")
 
-    # Commit CHANGELOG if updated
+    # Amend CHANGELOG into commit if it was updated
     changelog = plugin_dir / "CHANGELOG.md"
     if changelog.exists():
         is_clean, _ = check_git_status(plugin_dir)
@@ -375,27 +611,168 @@ def main() -> int:
 
     log_step(f"Creating tag v{new_version} in plugin...")
     run_command(
-        ["git", "tag", "-a", f"v{new_version}", "-m", f"Release v{new_version}"],
-        cwd=plugin_dir
+        [
+            "git",
+            "tag",
+            "-a",
+            f"v{new_version}",
+            "-m",
+            f"Release v{new_version}",
+        ],
+        cwd=plugin_dir,
     )
     log_success(f"Created tag v{new_version}")
 
-    log_step("Syncing version to marketplace.json...")
+    return True, new_version
+
+
+def main() -> int:
+    """Main entry point: parse args, release plugins, update marketplace."""
+    script_dir = Path(__file__).parent
+    repo_root = script_dir.parent
+
+    # --- Parse flags ---
+    raw_args = sys.argv[1:]
+    dry_run = "--dry-run" in raw_args
+    auto_yes = "--yes" in raw_args or "-y" in raw_args
+    strict = "--strict" in raw_args
+
+    # Extract --version value (supports --version X.Y.Z and --version=X.Y.Z)
+    explicit_version = ""
+    positional_args: list[str] = []
+    skip_next = False
+    for i, arg in enumerate(raw_args):
+        if skip_next:
+            skip_next = False
+            continue
+        if arg == "--version" and i + 1 < len(raw_args):
+            explicit_version = raw_args[i + 1]
+            skip_next = True
+            continue
+        if arg.startswith("--version="):
+            explicit_version = arg.split("=", 1)[1]
+            continue
+        if arg in ("--dry-run", "--yes", "-y", "--strict"):
+            continue
+        positional_args.append(arg)
+
+    # --- Determine plugin list ---
+    all_plugins = find_plugins(repo_root)
+    plugin_names: list[str] = []
+
+    # Backward compatibility: release-plugin.py <name> <version>
+    # If second positional arg looks like a semver, treat it as the version
+    if len(positional_args) >= 2 and validate_semver(positional_args[1]):
+        plugin_names = [positional_args[0]]
+        if not explicit_version:
+            explicit_version = positional_args[1]
+    elif positional_args:
+        plugin_names = positional_args
+
+    # If no plugins specified, release all
+    if not plugin_names:
+        plugin_names = sorted(all_plugins.keys())
+        if not plugin_names:
+            log_error("No plugins found in marketplace")
+            return 1
+        print(f"No plugins specified. Will release ALL {len(plugin_names)} plugins:")
+        for name in plugin_names:
+            pjp = all_plugins[name] / ".claude-plugin" / "plugin.json"
+            ver = get_current_version(pjp) if pjp.exists() else "?"
+            print(f"  - {name} ({ver})")
+        print()
+        if not auto_yes:
+            confirm = input("Proceed with releasing all plugins? (y/N): ")
+            if confirm.lower() != "y":
+                log_error("Aborted by user")
+                return 1
+
+    # Validate all plugin names exist
+    for name in plugin_names:
+        if name not in all_plugins:
+            log_error(f"Plugin not found: {name}")
+            show_usage(repo_root)
+            return 1
+
+    # --version is only valid with a single plugin
+    if explicit_version and len(plugin_names) > 1:
+        log_error("--version can only be used when releasing a single plugin")
+        return 1
+
+    # --- Print header ---
+    print()
+    print("=" * 60)
+    print("Plugin Release Workflow")
+    print("=" * 60)
+    print(f"  Plugins:       {', '.join(plugin_names)}")
+    print(f"  Version:       {explicit_version or '(auto-patch each)'}")
+    print(f"  Dry Run:       {dry_run}")
+    print(f"  Auto-confirm:  {auto_yes}")
+    print(f"  Strict:        {strict}")
+    print("=" * 60)
+
+    # --- Release each plugin ---
+    results: list[tuple[str, bool, str]] = []
+    for name in plugin_names:
+        version_for_plugin = explicit_version if len(plugin_names) == 1 else ""
+        success, final_version = release_single_plugin(
+            plugin_name=name,
+            plugin_dir=all_plugins[name],
+            new_version=version_for_plugin,
+            repo_root=repo_root,
+            dry_run=dry_run,
+            auto_yes=auto_yes,
+            strict=strict,
+        )
+        results.append((name, success, final_version))
+        if not success and strict:
+            log_error(f"Strict mode: stopping after {name} failure")
+            break
+
+    # Partition results
+    succeeded = [(n, v) for n, s, v in results if s]
+    failed = [n for n, s, _ in results if not s]
+
+    if not succeeded:
+        log_error("No plugins were released successfully")
+        return 1
+
+    # --- Dry run summary ---
+    if dry_run:
+        print()
+        print("=" * 60)
+        print("DRY RUN COMPLETE - No changes made")
+        print("=" * 60)
+        for name, version in succeeded:
+            print(f"  Would release: {name} v{version}")
+        if failed:
+            print(f"  Would skip (failed validation): {', '.join(failed)}")
+        return 0
+
+    # --- Sync marketplace.json (once for all plugins) ---
+    log_step("Syncing versions to marketplace.json...")
     sync_script = repo_root / "scripts" / "sync-versions.py"
     if sync_script.exists():
-        run_command(["python3", str(sync_script), "--verbose", str(repo_root)], cwd=repo_root)
+        run_command(
+            ["python3", str(sync_script), "--verbose", str(repo_root)],
+            cwd=repo_root,
+        )
         log_success("Marketplace.json updated")
+
+    # --- Commit marketplace (single commit for all plugins) ---
+    released_list = ", ".join(f"{n} v{v}" for n, v in succeeded)
+    commit_msg = f"feat: release {released_list}"
 
     log_step("Committing marketplace changes...")
     run_command(["git", "add", "-A"], cwd=repo_root)
     code, _, _ = run_command(
-        ["git", "commit", "-m", f"feat: release {plugin_name} v{new_version}"],
-        cwd=repo_root
+        ["git", "commit", "-m", commit_msg],
+        cwd=repo_root,
     )
     if code != 0:
         log_warning("Nothing to commit in marketplace")
 
-    # Commit CHANGELOG if updated
+    # Amend CHANGELOG if updated
     marketplace_changelog = repo_root / "CHANGELOG.md"
     if marketplace_changelog.exists():
         is_clean, _ = check_git_status(repo_root)
@@ -403,31 +780,40 @@ def main() -> int:
             run_command(["git", "add", "CHANGELOG.md"], cwd=repo_root)
             run_command(["git", "commit", "--amend", "--no-edit"], cwd=repo_root)
 
-    # Create marketplace tag
-    tag_name = f"{plugin_name}-v{new_version}"
-    log_step(f"Tagging marketplace ({tag_name})...")
-    if check_git_tag_exists(tag_name, repo_root):
-        run_command(["git", "tag", "-d", tag_name], cwd=repo_root)
-    run_command(
-        ["git", "tag", "-a", tag_name, "-m", f"Release {plugin_name} v{new_version}"],
-        cwd=repo_root
-    )
-    log_success(f"Created marketplace tag: {tag_name}")
+    # --- Create marketplace tags (one per released plugin) ---
+    for name, version in succeeded:
+        tag_name = f"{name}-v{version}"
+        log_step(f"Tagging marketplace ({tag_name})...")
+        if check_git_tag_exists(tag_name, repo_root):
+            run_command(["git", "tag", "-d", tag_name], cwd=repo_root)
+        run_command(
+            [
+                "git",
+                "tag",
+                "-a",
+                tag_name,
+                "-m",
+                f"Release {name} v{version}",
+            ],
+            cwd=repo_root,
+        )
+        log_success(f"Created marketplace tag: {tag_name}")
 
+    # --- Print summary ---
     print()
     print("=" * 60)
     print(f"{GREEN}RELEASE COMPLETE{NC}")
     print("=" * 60)
     print()
-    print(f"Plugin:     {plugin_name}")
-    print(f"Version:    {new_version}")
-    print(f"Plugin Tag: v{new_version}")
-    print(f"Marketplace Tag: {tag_name}")
+    for name, version in succeeded:
+        print(f"  {GREEN}✔{NC} {name} v{version}")
+    for name in failed:
+        print(f"  {RED}✘{NC} {name} (failed)")
     print()
     print("Next steps:")
-    print(f"  1. Push plugin submodule:    cd {plugin_name} && git push && git push --tags")
-    print("  2. Push marketplace:         git push && git push --tags")
-    print(f"  3. Reinstall in Claude Code: claude plugin uninstall {plugin_name}@emasoft-plugins && claude plugin install {plugin_name}@emasoft-plugins")
+    for name, _ in succeeded:
+        print(f"  Push {name}: cd {name} && git push && git push --tags")
+    print("  Push marketplace: git push && git push --tags")
     print()
 
     return 0
