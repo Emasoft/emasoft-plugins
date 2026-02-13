@@ -22,3 +22,6 @@
 [submodule "emasoft-programmer-agent"]
 	path = emasoft-programmer-agent
 	url = https://github.com/Emasoft/emasoft-programmer-agent.git
+[submodule "emasoft-chat-history"]
+	path = emasoft-chat-history
+	url = https://github.com/Emasoft/emasoft-chat-history.git

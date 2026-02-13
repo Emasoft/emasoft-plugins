@@ -184,6 +184,28 @@
         "developer"
       ],
       "category": "workflow"
+    },
+    {
+      "name": "emasoft-chat-history",
+      "source": "./emasoft-chat-history",
+      "description": "Auto-export chat transcripts before compaction to preserve conversation history using a PreCompact hook.",
+      "version": "1.0.0",
+      "author": {
+        "name": "Emasoft",
+        "email": "713559+Emasoft@users.noreply.github.com"
+      },
+      "repository": "https://github.com/Emasoft/emasoft-chat-history",
+      "license": "MIT",
+      "keywords": [
+        "chat-history",
+        "export",
+        "compaction",
+        "transcript",
+        "backup",
+        "hooks",
+        "precompact"
+      ],
+      "category": "workflow"
     }
   ]
 }
