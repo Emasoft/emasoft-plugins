@@ -26,8 +26,10 @@
 
 set -euo pipefail
 
-BASE_DIR="/Users/emanuelesabetta/Code/SKILL_FACTORY/OUTPUT_SKILLS"
-MARKETPLACE_DIR="/Users/emanuelesabetta/Code/SKILL_FACTORY"
+# Derive paths from the script's own location
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+MARKETPLACE_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
+BASE_DIR="$MARKETPLACE_DIR/OUTPUT_SKILLS"
 VALIDATOR="$BASE_DIR/claude-plugins-validation/scripts/validate_plugin.py"
 
 # All known plugins in push order
@@ -171,29 +173,59 @@ echo ""
 if [ -n "$STRICT" ]; then
     echo "--- strict validation ---"
     if [ ! -f "$VALIDATOR" ]; then
-        echo "  ERROR: Validator not found at $VALIDATOR"
+        echo "  ERROR: Plugin validator not found at $VALIDATOR"
         exit 1
     fi
     VALIDATOR_DIR="$BASE_DIR/claude-plugins-validation"
+    MARKETPLACE_VALIDATOR="$VALIDATOR_DIR/scripts/validate_marketplace.py"
     VALIDATION_FAILED=0
+
+    # Temporarily disable set -e so validation failures don't kill the script
+    set +e
+
+    # Validate each plugin
     for plugin in "${PLUGINS[@]}"; do
         plugin_dir="$BASE_DIR/$plugin"
         echo -n "  Validating $plugin... "
         # Run validator from its own directory so uv picks up its dependencies
         VOUTPUT=$(cd "$VALIDATOR_DIR" && uv run python "$VALIDATOR" "$plugin_dir" 2>&1)
         VCODE=$?
-        echo "$VOUTPUT" | tail -1
-        if [ "$VCODE" -ne 0 ]; then
-            echo "  BLOCKED: $plugin failed validation (exit code $VCODE)"
+        if [ "$VCODE" -eq 0 ]; then
+            echo "PASSED"
+        else
+            echo "FAILED (exit code $VCODE)"
+            echo "$VOUTPUT" | grep -E "CRITICAL|MAJOR" | head -5
+            echo "  BLOCKED: $plugin failed validation"
             VALIDATION_FAILED=1
         fi
     done
+
+    # Validate marketplace.json
+    if [ -f "$MARKETPLACE_VALIDATOR" ]; then
+        echo -n "  Validating marketplace.json... "
+        VOUTPUT=$(cd "$VALIDATOR_DIR" && uv run python "$MARKETPLACE_VALIDATOR" "$MARKETPLACE_DIR" 2>&1)
+        VCODE=$?
+        if [ "$VCODE" -eq 0 ]; then
+            echo "PASSED"
+        else
+            echo "FAILED (exit code $VCODE)"
+            echo "$VOUTPUT" | grep -E "CRITICAL|MAJOR" | head -5
+            echo "  BLOCKED: marketplace.json failed validation"
+            VALIDATION_FAILED=1
+        fi
+    else
+        echo "  WARNING: Marketplace validator not found at $MARKETPLACE_VALIDATOR"
+    fi
+
+    # Re-enable set -e
+    set -e
+
     echo ""
     if [ "$VALIDATION_FAILED" -eq 1 ]; then
         echo "ERROR: --strict validation failed. Fix issues before pushing."
         exit 1
     fi
-    echo "  All plugins passed strict validation."
+    echo "  All validations passed."
     echo ""
 fi
 
