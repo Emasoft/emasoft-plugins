@@ -77,7 +77,8 @@ jobs:
               name = p.get('name', '')
               source = p.get('source', {})
               if isinstance(source, dict) and source.get('source') == 'github':
-                  print(f'{name}|{source.get("repo", "")}')
+                  repo_val = source.get('repo', '')
+                  print(f'{name}|{repo_val}')
                   continue
               if isinstance(source, dict) and source.get('source') == 'url':
                   repo = source.get('url', '').rstrip('/').removesuffix('.git')
@@ -94,7 +95,8 @@ jobs:
               if p.get('name') == '$PLUGIN':
                   source = p.get('source', {})
                   if isinstance(source, dict) and source.get('source') == 'github':
-                      print(f'$PLUGIN|{source.get(\"repo\", \"\")}')
+                      repo_val = source.get('repo', '')
+                      print(f'$PLUGIN|{repo_val}')
                   elif isinstance(source, dict) and source.get('source') == 'url':
                       repo = source.get('url', '').rstrip('/').removesuffix('.git')
                       owner_repo = '/'.join(repo.split('/')[-2:])
@@ -128,9 +130,11 @@ jobs:
                   old = p.get('version', 'unknown')
                   if old != '$VERSION':
                       p['version'] = '$VERSION'
-                      print(f'  Updated {p[\"name\"]}: {old} -> $VERSION')
+                      pname = p.get('name', '?')
+                      print(f'  Updated {pname}: {old} -> $VERSION')
                   else:
-                      print(f'  {p[\"name\"]}: already at $VERSION')
+                      pname = p.get('name', '?')
+                      print(f'  {pname}: already at $VERSION')
                   break
           with open('$MARKETPLACE_JSON', 'w') as f:
               json.dump(data, f, indent=2)
@@ -197,5 +201,12 @@ jobs:
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### marketplace.json" >> $GITHUB_STEP_SUMMARY
           echo '```json' >> $GITHUB_STEP_SUMMARY
-          python3 -c "import json; data=json.load(open('.claude-plugin/marketplace.json')); [print(f\"  {p['name']}: {p.get('version','?')}\") for p in data.get('plugins',[])]" >> $GITHUB_STEP_SUMMARY
+          python3 -c "
+          import json
+          data = json.load(open('.claude-plugin/marketplace.json'))
+          for p in data.get('plugins', []):
+              name = p.get('name', '?')
+              ver = p.get('version', '?')
+              print(f'  {name}: {ver}')
+          " >> $GITHUB_STEP_SUMMARY
           echo '```' >> $GITHUB_STEP_SUMMARY
