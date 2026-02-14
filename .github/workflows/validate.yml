@@ -35,7 +35,17 @@ jobs:
             exit 1
           fi
 
-          # Validate all plugin entries have required fields and valid sources
+          # Validate all plugin entries have required fields and valid sources.
+          #
+          # IMPORTANT: This is inline Python inside a YAML double-quoted shell string.
+          # Shell quoting rules apply -- the shell strips inner double quotes before
+          # Python sees the code. Therefore:
+          #   - NEVER use dict["key"] inside f-strings (shell eats the quotes,
+          #     Python sees bare `key` as an undefined variable -> NameError)
+          #   - ALWAYS extract dict values into local variables first, then
+          #     reference those variables in f-strings
+          #   - Use only single quotes inside f-strings
+          # See CLAUDE.md "CI/CD Pitfalls" section for full explanation.
           python3 -c "
           import json, sys
           with open('.claude-plugin/marketplace.json') as f:
@@ -58,6 +68,8 @@ jobs:
                   sys.exit(1)
               if isinstance(source, dict):
                   src_type = source.get('source')
+                  # Extract values into locals -- do NOT use source['repo'] in
+                  # f-strings because shell quoting will mangle the double quotes
                   repo = source.get('repo', '')
                   url = source.get('url', '')
                   if src_type == 'github' and repo:
