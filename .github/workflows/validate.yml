@@ -57,10 +57,14 @@ jobs:
                   print(f'FAIL: plugin {name} missing source')
                   sys.exit(1)
               if isinstance(source, dict):
-                  if source.get('type') != 'git' or not source.get('repository'):
-                      print(f'FAIL: plugin {name} URL source missing type or repository')
+                  src_type = source.get('source')
+                  if src_type == 'github' and source.get('repo'):
+                      print(f'OK {name}: GitHub source -> {source["repo"]}')
+                  elif src_type == 'url' and source.get('url'):
+                      print(f'OK {name}: URL source -> {source["url"]}')
+                  else:
+                      print(f'FAIL: plugin {name} invalid source object (needs source+repo or source+url)')
                       sys.exit(1)
-                  print(f'OK {name}: URL source -> {source[\"repository\"]}')
               elif isinstance(source, str):
                   print(f'OK {name}: path source -> {source}')
               else:

@@ -76,8 +76,11 @@ jobs:
           for p in data.get('plugins', []):
               name = p.get('name', '')
               source = p.get('source', {})
-              if isinstance(source, dict) and source.get('type') == 'git':
-                  repo = source.get('repository', '').rstrip('/').removesuffix('.git')
+              if isinstance(source, dict) and source.get('source') == 'github':
+                  print(f'{name}|{source.get("repo", "")}')
+                  continue
+              if isinstance(source, dict) and source.get('source') == 'url':
+                  repo = source.get('url', '').rstrip('/').removesuffix('.git')
                   owner_repo = '/'.join(repo.split('/')[-2:])
                   print(f'{name}|{owner_repo}')
           ")
@@ -90,8 +93,10 @@ jobs:
           for p in data.get('plugins', []):
               if p.get('name') == '$PLUGIN':
                   source = p.get('source', {})
-                  if isinstance(source, dict) and source.get('type') == 'git':
-                      repo = source.get('repository', '').rstrip('/').removesuffix('.git')
+                  if isinstance(source, dict) and source.get('source') == 'github':
+                      print(f'$PLUGIN|{source.get(\"repo\", \"\")}')
+                  elif isinstance(source, dict) and source.get('source') == 'url':
+                      repo = source.get('url', '').rstrip('/').removesuffix('.git')
                       owner_repo = '/'.join(repo.split('/')[-2:])
                       print(f'$PLUGIN|{owner_repo}')
                   break

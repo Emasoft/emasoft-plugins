@@ -196,10 +196,15 @@ def validate_marketplace(repo_root: Path) -> list[tuple[str, str]]:
         if not plugin.get("source"):
             issues.append(("CRITICAL", f"Plugin '{plugin.get('name', '?')}' missing 'source'"))
         elif isinstance(plugin.get("source"), dict):
-            # URL-based source (e.g., {"type": "git", "repository": "..."}) - valid
+            # URL-based source (e.g., {"source": "github", "repo": "owner/name"}) - valid
             source = plugin.get("source")
-            if not source.get("type") or not source.get("repository"):
-                issues.append(("MAJOR", f"Plugin '{plugin.get('name', '?')}' URL source missing 'type' or 'repository'"))
+            src_type = source.get("source")
+            if src_type == "github" and not source.get("repo"):
+                issues.append(("MAJOR", f"Plugin '{plugin.get('name', '?')}' GitHub source missing 'repo'"))
+            elif src_type == "url" and not source.get("url"):
+                issues.append(("MAJOR", f"Plugin '{plugin.get('name', '?')}' URL source missing 'url'"))
+            elif src_type not in ("github", "url"):
+                issues.append(("MAJOR", f"Plugin '{plugin.get('name', '?')}' unknown source type '{src_type}'"))
         elif not isinstance(plugin.get("source"), str):
             issues.append(("CRITICAL", f"Plugin '{plugin.get('name', '?')}' source must be string path or URL object"))
 
@@ -221,7 +226,7 @@ def check_version_consistency(repo_root: Path) -> list[tuple[str, str]]:
     marketplace_plugins = {}
     for p in marketplace.get("plugins", []):
         source = p.get("source", "")
-        is_url = isinstance(source, dict) and source.get("type") == "git"
+        is_url = isinstance(source, dict) and source.get("source") in ("github", "url")
         marketplace_plugins[p["name"]] = (p.get("version"), is_url)
 
     for plugin_dir in find_plugins(repo_root):

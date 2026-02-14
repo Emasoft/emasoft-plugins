@@ -4,7 +4,7 @@ sync_marketplace_versions.py - Sync plugin versions from plugin sources to marke
 
 This script reads version information from each plugin's plugin.json and updates
 the corresponding entry in marketplace.json. It supports both URL-based sources
-(dict with "type": "git") and path-based sources (string starting with "./").
+(dict with "source": "github") and path-based sources (string starting with "./").
 
 Usage:
     python sync_marketplace_versions.py [--marketplace PATH] [--dry-run]
@@ -110,7 +110,7 @@ def sync_versions(
         if isinstance(source, str) and source.startswith("./"):
             # Path-based source (legacy): plugin dir is relative to marketplace
             plugin_dir = marketplace_dir / source[2:]
-        elif isinstance(source, dict) and source.get("type") == "git":
+        elif isinstance(source, dict) and source.get("source") in ("github", "url"):
             # URL-based source: look in OUTPUT_SKILLS/ for local dev copy
             plugin_dir = marketplace_dir / "OUTPUT_SKILLS" / plugin_name
             if not plugin_dir.exists():
