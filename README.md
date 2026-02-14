@@ -337,11 +337,14 @@ Comprehensive validation suite for Claude Code plugins, marketplaces, hooks, ski
 **Usage:**
 ```bash
 # Validate a plugin
-cd claude-plugins-validation
+cd OUTPUT_SKILLS/claude-plugins-validation
 uv run python scripts/validate_plugin.py /path/to/your-plugin --verbose
 
 # Validate a marketplace for GitHub deployment
 uv run python scripts/validate_marketplace.py /path/to/marketplace --verbose
+
+# From any other plugin directory (without pyproject.toml):
+uv run --with pyyaml python scripts/validate_plugin.py . --verbose
 ```
 
 **Exit Codes:**

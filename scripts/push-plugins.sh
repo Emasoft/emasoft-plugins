@@ -92,6 +92,63 @@ declare -a PUSHED=()
 declare -a SKIPPED=()
 declare -a FAILED=()
 
+# ── Validation scripts sync ────────────────────────────────────────────
+
+# ── Validation scripts sync ────────────────────────────────────────────
+
+sync_validation_scripts() {
+    # Copy ALL validate_*.py scripts from the CPV plugin into the target plugin.
+    # This ensures every published plugin is self-contained with the latest validators.
+    # Also removes obsolete prefixed validators (e.g., epa_validate_plugin.py).
+    # Skips the CPV plugin itself (it already has the originals).
+    local plugin_dir="$1"
+    local plugin_name="$2"
+    local cpv_scripts="$BASE_DIR/claude-plugins-validation/scripts"
+    local scripts_dir="$plugin_dir/scripts"
+
+    if [ "$plugin_name" = "claude-plugins-validation" ]; then
+        return
+    fi
+
+    if [ ! -d "$cpv_scripts" ]; then
+        echo "  WARNING: CPV scripts dir not found, skipping validation sync"
+        return
+    fi
+
+    mkdir -p "$scripts_dir"
+
+    # Remove old prefixed validators (e.g., epa_validate_plugin.py, eaa_validate_plugin.py)
+    local removed=0
+    for old in "$scripts_dir"/*_validate_plugin.py "$scripts_dir"/*_validate_marketplace.py "$scripts_dir"/*_validate_hook.py "$scripts_dir"/*_validate_skill.py "$scripts_dir"/*_validate.py; do
+        if [ -f "$old" ] && [ "$(basename "$old")" != "validate_plugin.py" ]; then
+            rm "$old"
+            removed=$((removed + 1))
+        fi
+    done
+    if [ "$removed" -gt 0 ]; then
+        echo "  Removed $removed obsolete prefixed validator(s)"
+    fi
+
+    # Copy all validate_*.py from CPV
+    local synced=0
+    for src in "$cpv_scripts"/validate_*.py; do
+        [ -f "$src" ] || continue
+        local filename
+        filename=$(basename "$src")
+        local dst="$scripts_dir/$filename"
+        if [ -f "$dst" ] && diff -q "$src" "$dst" >/dev/null 2>&1; then
+            continue  # already up to date
+        fi
+        cp "$src" "$dst"
+        chmod +x "$dst"
+        synced=$((synced + 1))
+    done
+
+    if [ "$synced" -gt 0 ]; then
+        echo "  Synced $synced validation script(s) from CPV"
+    fi
+}
+
 # ── Symlink dereference/restore helpers ──────────────────────────────
 
 dereference_symlinks() {
@@ -243,14 +300,17 @@ for plugin in "${PLUGINS[@]}"; do
 
     cd "$plugin_dir"
 
-    # Dereference symlinks before checking status
+    # Sync latest validation scripts from CPV
+    sync_validation_scripts "$plugin_dir" "$plugin"
+
+    # Dereference any remaining symlinks in scripts/ for publishing
     dereference_symlinks "$plugin_dir" "$plugin"
 
-    # Stage any dereferenced files
+    # Stage any synced or dereferenced files
     git add scripts/ 2>/dev/null || true
     if ! git diff --staged --quiet 2>/dev/null; then
-        git commit -m "chore: dereference validation symlinks for publishing"
-        echo "  Committed dereferenced symlinks"
+        git commit -m "chore: sync validation scripts from CPV"
+        echo "  Committed updated scripts"
     fi
 
     # Check if there are unpushed commits

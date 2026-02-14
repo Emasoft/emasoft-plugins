@@ -94,7 +94,10 @@ def validate_semver(version: str) -> bool:
 def find_plugins(repo_root: Path) -> list[Path]:
     """Find all plugin directories."""
     plugins = []
-    for item in repo_root.iterdir():
+    output_skills = repo_root / "OUTPUT_SKILLS"
+    if not output_skills.is_dir():
+        return plugins
+    for item in output_skills.iterdir():
         if item.is_dir():
             plugin_json = item / ".claude-plugin" / "plugin.json"
             if plugin_json.exists():
@@ -161,11 +164,11 @@ def verify_marketplace_validation(repo_root: Path, results: VerificationResult) 
     """Run marketplace validation."""
     section("3. Marketplace Validation")
 
-    validator = repo_root / "claude-plugins-validation" / "scripts" / "validate_marketplace.py"
+    validator = repo_root / "OUTPUT_SKILLS" / "claude-plugins-validation" / "scripts" / "validate_marketplace.py"
     if validator.exists():
         code, stdout, _ = run_command(
             ["uv", "run", "python", str(validator), str(repo_root)],
-            cwd=repo_root / "claude-plugins-validation"
+            cwd=repo_root / "OUTPUT_SKILLS" / "claude-plugins-validation"
         )
         if "PASSED" in stdout or code == 0:
             results.check_pass("Marketplace validation passed")
@@ -180,14 +183,14 @@ def verify_plugin_validations(repo_root: Path, results: VerificationResult) -> N
     """Validate each plugin."""
     section("4. Plugin Validations")
 
-    validator = repo_root / "claude-plugins-validation" / "scripts" / "validate_plugin.py"
+    validator = repo_root / "OUTPUT_SKILLS" / "claude-plugins-validation" / "scripts" / "validate_plugin.py"
 
     for plugin_dir in find_plugins(repo_root):
         plugin_name = plugin_dir.name
         if validator.exists():
             code, stdout, stderr = run_command(
                 ["uv", "run", "python", str(validator), str(plugin_dir)],
-                cwd=repo_root / "claude-plugins-validation"
+                cwd=repo_root / "OUTPUT_SKILLS" / "claude-plugins-validation"
             )
             output = stdout + stderr
             if "All checks passed" in output or code == 0:
