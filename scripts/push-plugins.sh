@@ -248,7 +248,7 @@ if [ -n "$VALIDATE" ]; then
 
     # Validate each plugin
     # Exit codes: 0=clean, 1=CRITICAL, 2=MAJOR, 3=MINOR-only
-    # Block push on CRITICAL (1) or MAJOR (2). MINOR-only (3) is allowed.
+    # Block push on ANY non-zero exit code (zero tolerance).
     for plugin in "${PLUGINS[@]}"; do
         plugin_dir="$BASE_DIR/$plugin"
         echo -n "  Validating $plugin... "
@@ -257,12 +257,10 @@ if [ -n "$VALIDATE" ]; then
         VCODE=$?
         if [ "$VCODE" -eq 0 ]; then
             echo "PASSED (clean)"
-        elif [ "$VCODE" -eq 3 ]; then
-            echo "PASSED (minor issues only)"
         else
             echo "BLOCKED (exit code $VCODE)"
-            echo "$VOUTPUT" | grep -E "CRITICAL|MAJOR" | head -5
-            echo "  BLOCKED: $plugin has CRITICAL/MAJOR issues"
+            echo "$VOUTPUT" | grep -E "CRITICAL|MAJOR|MINOR" | head -10
+            echo "  BLOCKED: $plugin has validation issues (exit code $VCODE)"
             VALIDATION_FAILED=1
         fi
     done
@@ -274,12 +272,10 @@ if [ -n "$VALIDATE" ]; then
         VCODE=$?
         if [ "$VCODE" -eq 0 ]; then
             echo "PASSED (clean)"
-        elif [ "$VCODE" -eq 3 ]; then
-            echo "PASSED (minor issues only)"
         else
             echo "BLOCKED (exit code $VCODE)"
-            echo "$VOUTPUT" | grep -E "CRITICAL|MAJOR" | head -5
-            echo "  BLOCKED: marketplace.json has CRITICAL/MAJOR issues"
+            echo "$VOUTPUT" | grep -E "CRITICAL|MAJOR|MINOR" | head -10
+            echo "  BLOCKED: marketplace.json has validation issues (exit code $VCODE)"
             VALIDATION_FAILED=1
         fi
     else
@@ -291,7 +287,7 @@ if [ -n "$VALIDATE" ]; then
 
     echo ""
     if [ "$VALIDATION_FAILED" -eq 1 ]; then
-        echo "ERROR: Pre-push validation failed (CRITICAL/MAJOR issues). Fix before pushing."
+        echo "ERROR: Pre-push validation failed. ALL issues (including MINOR) must be fixed before pushing."
         exit 1
     fi
     echo "  All validations passed."
