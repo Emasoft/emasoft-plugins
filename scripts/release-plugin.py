@@ -110,13 +110,16 @@ def compare_versions(v1: str, v2: str) -> int:
 
 
 def find_plugins(repo_root: Path) -> dict[str, Path]:
-    """Find all plugin directories in the marketplace repo root.
+    """Find all plugin directories in OUTPUT_SKILLS/.
 
     A plugin directory is any subdirectory containing .claude-plugin/plugin.json.
     Returns a dict mapping plugin name to its directory path.
     """
     plugins = {}
-    for item in repo_root.iterdir():
+    output_skills = repo_root / "OUTPUT_SKILLS"
+    if not output_skills.is_dir():
+        return plugins
+    for item in output_skills.iterdir():
         if item.is_dir():
             plugin_json = item / ".claude-plugin" / "plugin.json"
             if plugin_json.exists():
