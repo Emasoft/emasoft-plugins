@@ -129,9 +129,9 @@ sync_validation_scripts() {
         echo "  Removed $removed obsolete prefixed validator(s)"
     fi
 
-    # Copy all validate_*.py from CPV
+    # Copy all validate_*.py AND validation_common.py from CPV
     local synced=0
-    for src in "$cpv_scripts"/validate_*.py; do
+    for src in "$cpv_scripts"/validate_*.py "$cpv_scripts"/validation_common.py; do
         [ -f "$src" ] || continue
         local filename
         filename=$(basename "$src")
