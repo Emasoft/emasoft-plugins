@@ -6,26 +6,29 @@
 # If plugin names given, pushes only those plugins.
 #
 # Before pushing:
-#   - Validates ALL plugins and marketplace.json (zero tolerance for CRITICAL/MAJOR)
+#   - Validates ALL plugins and marketplace.json (zero tolerance — any issue blocks push)
+#   - Auto-bumps patch version (X.Y.Z → X.Y.Z+1) in plugin.json for each plugin with unpushed commits
 #   - Dereferences symlinks in scripts/ to real files (so GitHub repos are self-contained)
-#   - Commits the dereferenced files
+#   - Commits synced scripts and version bumps
 #   - Pushes
 #   - Restores symlinks locally after push
 #
 # Validation is mandatory by default. Use --no-validate to skip (NOT recommended).
+# Version bump is automatic by default. Use --no-bump to skip.
 #
 # After pushing plugins:
-#   - Syncs marketplace.json versions from OUTPUT_SKILLS
+#   - Syncs marketplace.json versions from OUTPUT_SKILLS (picks up bumped versions)
 #   - Pushes marketplace
 #
 # Examples:
-#   ./scripts/push-plugins.sh                          # Push all plugins
-#   ./scripts/push-plugins.sh emasoft-chat-history      # Push one plugin
+#   ./scripts/push-plugins.sh                          # Push all plugins (with auto-bump)
+#   ./scripts/push-plugins.sh emasoft-chat-history      # Push one plugin (with auto-bump)
 #   ./scripts/push-plugins.sh perfect-skill-suggester claude-plugins-validation  # Push two
 #   ./scripts/push-plugins.sh --dry-run                # Dry-run all
 #   ./scripts/push-plugins.sh emasoft-chat-history --dry-run  # Dry-run one
-#   ./scripts/push-plugins.sh --no-validate                    # Skip pre-push validation (NOT recommended)
-#   ./scripts/push-plugins.sh emasoft-chat-history --no-validate  # Skip validation for one
+#   ./scripts/push-plugins.sh --no-validate            # Skip pre-push validation (NOT recommended)
+#   ./scripts/push-plugins.sh --no-bump                # Skip auto version bump
+#   ./scripts/push-plugins.sh --no-validate --no-bump  # Skip both
 
 set -euo pipefail
 
@@ -52,6 +55,7 @@ ALL_PLUGINS=(
 
 DRY_RUN=""
 VALIDATE="yes"  # Validation is ON by default (was --strict opt-in, now default)
+NO_BUMP=""       # Auto-bump is ON by default; --no-bump disables it
 declare -a REQUESTED_PLUGINS=()
 
 for arg in "$@"; do
@@ -59,6 +63,8 @@ for arg in "$@"; do
         DRY_RUN="--dry-run"
     elif [ "$arg" = "--no-validate" ]; then
         VALIDATE=""
+    elif [ "$arg" = "--no-bump" ]; then
+        NO_BUMP="yes"
     elif [ "$arg" = "--strict" ]; then
         # Legacy alias, still works (validation is default now)
         VALIDATE="yes"
@@ -217,6 +223,50 @@ restore_symlinks() {
     echo "  Restored symlinks in scripts/"
 }
 
+# ── Version bump helper ──────────────────────────────────────────────
+
+bump_patch_version() {
+    # Bump patch version (X.Y.Z → X.Y.Z+1) in plugin.json and commit.
+    # Only bumps if there are unpushed commits or uncommitted changes.
+    # Returns 0 if bumped, 1 if skipped.
+    local plugin_dir="$1"
+    local plugin_name="$2"
+    local plugin_json="$plugin_dir/.claude-plugin/plugin.json"
+
+    if [ ! -f "$plugin_json" ]; then
+        echo "  WARNING: No plugin.json found, skipping version bump"
+        return 1
+    fi
+
+    # Read current version and compute bumped version
+    local NEW_VERSION
+    NEW_VERSION=$(python3 -c "
+import json, sys
+with open('$plugin_json') as f:
+    d = json.load(f)
+v = d.get('version', '0.0.0')
+parts = v.split('.')
+parts[-1] = str(int(parts[-1]) + 1)
+new_v = '.'.join(parts)
+# Write back with same formatting
+d['version'] = new_v
+with open('$plugin_json', 'w') as f:
+    json.dump(d, f, indent=2)
+    f.write('\n')
+print(new_v)
+" 2>&1)
+
+    if [ $? -ne 0 ]; then
+        echo "  WARNING: Failed to bump version: $NEW_VERSION"
+        return 1
+    fi
+
+    git add .claude-plugin/plugin.json
+    git commit -m "chore: bump version to $NEW_VERSION"
+    echo "  Bumped version to $NEW_VERSION"
+    return 0
+}
+
 # ── Main ─────────────────────────────────────────────────────────────
 
 PLUGIN_COUNT=${#PLUGINS[@]}
@@ -321,10 +371,20 @@ for plugin in "${PLUGINS[@]}"; do
         echo "  Committed updated scripts"
     fi
 
-    # Check if there are unpushed commits
-    LOCAL=$(git rev-parse HEAD 2>/dev/null)
     # Determine default branch
     BRANCH=$(git symbolic-ref --short HEAD 2>/dev/null || echo "main")
+
+    # Auto-bump patch version if there are unpushed commits (unless --no-bump)
+    if [ -z "$NO_BUMP" ]; then
+        LOCAL_PRE=$(git rev-parse HEAD 2>/dev/null)
+        REMOTE_PRE=$(git rev-parse "origin/$BRANCH" 2>/dev/null || echo "none")
+        if [ "$LOCAL_PRE" != "$REMOTE_PRE" ]; then
+            bump_patch_version "$plugin_dir" "$plugin" || true
+        fi
+    fi
+
+    # Check if there are unpushed commits
+    LOCAL=$(git rev-parse HEAD 2>/dev/null)
     REMOTE=$(git rev-parse "origin/$BRANCH" 2>/dev/null || echo "none")
 
     if [ "$LOCAL" = "$REMOTE" ]; then
