@@ -6,6 +6,39 @@ All notable changes to this project will be documented in this file.
 
 ### Bug Fixes
 
+- Push-plugins.sh hardcoded paths, validation display, marketplace check
+- Include validation_common.py in validator sync
+- Resolve NameError in marketplace validation workflow
+- Extract dict bracket access from f-strings in update-submodules.yml
+
+### Documentation
+
+- Add inline-Python quoting warning comments to validate.yml
+
+### Features
+
+- Add --strict flag to push-plugins.sh
+- Make pre-push validation mandatory in push-plugins.sh
+
+### Miscellaneous Tasks
+
+- Sync marketplace.json plugin versions
+- Sync smart_exec.py alongside validation scripts
+- Update emasoft-chat-history to v1.1.0 in marketplace
+- Sync marketplace.json plugin versions
+- Update emasoft-chat-history to v1.1.1 in marketplace
+- Sync marketplace.json plugin versions
+- Sync marketplace.json plugin versions
+
+### Refactor
+
+- Replace release-plugin.py with push-plugins.sh
+- Standardize validator references and add validation sync
+
+## [emasoft-chat-history-v1.0.1] - 2026-02-14
+
+### Bug Fixes
+
 - **marketplace:** Correct schema compliance and strict mode
 - **marketplace:** Align with official Anthropic schema
 - **marketplace:** Remove duplicate component paths for strict mode
@@ -15,6 +48,7 @@ All notable changes to this project will be documented in this file.
 - Update all submodules with manifest schema fixes
 - **ci:** Add concurrency group and push retry to update-submodules
 - Update emasoft-chat-history hook to use CLAUDE_PLUGIN_ROOT
+- Use official Anthropic source schema in marketplace.json
 
 ### Documentation
 
@@ -30,6 +64,7 @@ All notable changes to this project will be documented in this file.
 - Bump all 8 plugins to latest versions
 - Release perfect-skill-suggester v1.9.0
 - Add emasoft-chat-history plugin to marketplace
+- Release emasoft-chat-history v1.0.1
 
 ### Miscellaneous Tasks
 
@@ -89,6 +124,7 @@ All notable changes to this project will be documented in this file.
 - Sync submodules and marketplace.json
 - Merge remote submodule updates (EOA, EIA)
 - Sync submodule pointers to remote HEAD
+- Sync marketplace.json plugin versions
 
 ### Refactor
 
