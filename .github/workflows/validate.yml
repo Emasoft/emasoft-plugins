@@ -58,10 +58,12 @@ jobs:
                   sys.exit(1)
               if isinstance(source, dict):
                   src_type = source.get('source')
-                  if src_type == 'github' and source.get('repo'):
-                      print(f'OK {name}: GitHub source -> {source["repo"]}')
-                  elif src_type == 'url' and source.get('url'):
-                      print(f'OK {name}: URL source -> {source["url"]}')
+                  repo = source.get('repo', '')
+                  url = source.get('url', '')
+                  if src_type == 'github' and repo:
+                      print(f'OK {name}: GitHub source -> {repo}')
+                  elif src_type == 'url' and url:
+                      print(f'OK {name}: URL source -> {url}')
                   else:
                       print(f'FAIL: plugin {name} invalid source object (needs source+repo or source+url)')
                       sys.exit(1)
