@@ -5,11 +5,14 @@
 # If no plugin names given, pushes ALL plugins.
 # If plugin names given, pushes only those plugins.
 #
-# Before pushing each plugin:
+# Before pushing:
+#   - Validates ALL plugins and marketplace.json (zero tolerance for CRITICAL/MAJOR)
 #   - Dereferences symlinks in scripts/ to real files (so GitHub repos are self-contained)
 #   - Commits the dereferenced files
 #   - Pushes
 #   - Restores symlinks locally after push
+#
+# Validation is mandatory by default. Use --no-validate to skip (NOT recommended).
 #
 # After pushing plugins:
 #   - Syncs marketplace.json versions from OUTPUT_SKILLS
@@ -21,8 +24,8 @@
 #   ./scripts/push-plugins.sh perfect-skill-suggester claude-plugins-validation  # Push two
 #   ./scripts/push-plugins.sh --dry-run                # Dry-run all
 #   ./scripts/push-plugins.sh emasoft-chat-history --dry-run  # Dry-run one
-#   ./scripts/push-plugins.sh --strict                        # Validate before pushing (zero tolerance)
-#   ./scripts/push-plugins.sh emasoft-chat-history --strict    # Validate + push one
+#   ./scripts/push-plugins.sh --no-validate                    # Skip pre-push validation (NOT recommended)
+#   ./scripts/push-plugins.sh emasoft-chat-history --no-validate  # Skip validation for one
 
 set -euo pipefail
 
@@ -48,14 +51,17 @@ ALL_PLUGINS=(
 # ── Parse arguments ──────────────────────────────────────────────────
 
 DRY_RUN=""
-STRICT=""
+VALIDATE="yes"  # Validation is ON by default (was --strict opt-in, now default)
 declare -a REQUESTED_PLUGINS=()
 
 for arg in "$@"; do
     if [ "$arg" = "--dry-run" ]; then
         DRY_RUN="--dry-run"
+    elif [ "$arg" = "--no-validate" ]; then
+        VALIDATE=""
     elif [ "$arg" = "--strict" ]; then
-        STRICT="--strict"
+        # Legacy alias, still works (validation is default now)
+        VALIDATE="yes"
     else
         REQUESTED_PLUGINS+=("$arg")
     fi
@@ -226,9 +232,9 @@ else
 fi
 echo ""
 
-# ── Strict validation (runs before any push) ─────────────────────────
-if [ -n "$STRICT" ]; then
-    echo "--- strict validation ---"
+# ── Pre-push validation (runs by default, skip with --no-validate) ───
+if [ -n "$VALIDATE" ]; then
+    echo "--- pre-push validation ---"
     if [ ! -f "$VALIDATOR" ]; then
         echo "  ERROR: Plugin validator not found at $VALIDATOR"
         exit 1
@@ -241,6 +247,8 @@ if [ -n "$STRICT" ]; then
     set +e
 
     # Validate each plugin
+    # Exit codes: 0=clean, 1=CRITICAL, 2=MAJOR, 3=MINOR-only
+    # Block push on CRITICAL (1) or MAJOR (2). MINOR-only (3) is allowed.
     for plugin in "${PLUGINS[@]}"; do
         plugin_dir="$BASE_DIR/$plugin"
         echo -n "  Validating $plugin... "
@@ -248,11 +256,13 @@ if [ -n "$STRICT" ]; then
         VOUTPUT=$(cd "$VALIDATOR_DIR" && uv run python "$VALIDATOR" "$plugin_dir" 2>&1)
         VCODE=$?
         if [ "$VCODE" -eq 0 ]; then
-            echo "PASSED"
+            echo "PASSED (clean)"
+        elif [ "$VCODE" -eq 3 ]; then
+            echo "PASSED (minor issues only)"
         else
-            echo "FAILED (exit code $VCODE)"
+            echo "BLOCKED (exit code $VCODE)"
             echo "$VOUTPUT" | grep -E "CRITICAL|MAJOR" | head -5
-            echo "  BLOCKED: $plugin failed validation"
+            echo "  BLOCKED: $plugin has CRITICAL/MAJOR issues"
             VALIDATION_FAILED=1
         fi
     done
@@ -263,11 +273,13 @@ if [ -n "$STRICT" ]; then
         VOUTPUT=$(cd "$VALIDATOR_DIR" && uv run python "$MARKETPLACE_VALIDATOR" "$MARKETPLACE_DIR" 2>&1)
         VCODE=$?
         if [ "$VCODE" -eq 0 ]; then
-            echo "PASSED"
+            echo "PASSED (clean)"
+        elif [ "$VCODE" -eq 3 ]; then
+            echo "PASSED (minor issues only)"
         else
-            echo "FAILED (exit code $VCODE)"
+            echo "BLOCKED (exit code $VCODE)"
             echo "$VOUTPUT" | grep -E "CRITICAL|MAJOR" | head -5
-            echo "  BLOCKED: marketplace.json failed validation"
+            echo "  BLOCKED: marketplace.json has CRITICAL/MAJOR issues"
             VALIDATION_FAILED=1
         fi
     else
@@ -279,7 +291,7 @@ if [ -n "$STRICT" ]; then
 
     echo ""
     if [ "$VALIDATION_FAILED" -eq 1 ]; then
-        echo "ERROR: --strict validation failed. Fix issues before pushing."
+        echo "ERROR: Pre-push validation failed (CRITICAL/MAJOR issues). Fix before pushing."
         exit 1
     fi
     echo "  All validations passed."
