@@ -21,11 +21,14 @@
 #   ./scripts/push-plugins.sh perfect-skill-suggester claude-plugins-validation  # Push two
 #   ./scripts/push-plugins.sh --dry-run                # Dry-run all
 #   ./scripts/push-plugins.sh emasoft-chat-history --dry-run  # Dry-run one
+#   ./scripts/push-plugins.sh --strict                        # Validate before pushing (zero tolerance)
+#   ./scripts/push-plugins.sh emasoft-chat-history --strict    # Validate + push one
 
 set -euo pipefail
 
 BASE_DIR="/Users/emanuelesabetta/Code/SKILL_FACTORY/OUTPUT_SKILLS"
 MARKETPLACE_DIR="/Users/emanuelesabetta/Code/SKILL_FACTORY"
+VALIDATOR="$BASE_DIR/claude-plugins-validation/scripts/validate_plugin.py"
 
 # All known plugins in push order
 ALL_PLUGINS=(
@@ -43,11 +46,14 @@ ALL_PLUGINS=(
 # ── Parse arguments ──────────────────────────────────────────────────
 
 DRY_RUN=""
+STRICT=""
 declare -a REQUESTED_PLUGINS=()
 
 for arg in "$@"; do
     if [ "$arg" = "--dry-run" ]; then
         DRY_RUN="--dry-run"
+    elif [ "$arg" = "--strict" ]; then
+        STRICT="--strict"
     else
         REQUESTED_PLUGINS+=("$arg")
     fi
@@ -160,6 +166,36 @@ else
     for p in "${PLUGINS[@]}"; do echo "  - $p"; done
 fi
 echo ""
+
+# ── Strict validation (runs before any push) ─────────────────────────
+if [ -n "$STRICT" ]; then
+    echo "--- strict validation ---"
+    if [ ! -f "$VALIDATOR" ]; then
+        echo "  ERROR: Validator not found at $VALIDATOR"
+        exit 1
+    fi
+    VALIDATOR_DIR="$BASE_DIR/claude-plugins-validation"
+    VALIDATION_FAILED=0
+    for plugin in "${PLUGINS[@]}"; do
+        plugin_dir="$BASE_DIR/$plugin"
+        echo -n "  Validating $plugin... "
+        # Run validator from its own directory so uv picks up its dependencies
+        VOUTPUT=$(cd "$VALIDATOR_DIR" && uv run python "$VALIDATOR" "$plugin_dir" 2>&1)
+        VCODE=$?
+        echo "$VOUTPUT" | tail -1
+        if [ "$VCODE" -ne 0 ]; then
+            echo "  BLOCKED: $plugin failed validation (exit code $VCODE)"
+            VALIDATION_FAILED=1
+        fi
+    done
+    echo ""
+    if [ "$VALIDATION_FAILED" -eq 1 ]; then
+        echo "ERROR: --strict validation failed. Fix issues before pushing."
+        exit 1
+    fi
+    echo "  All plugins passed strict validation."
+    echo ""
+fi
 
 # Phase 1: Push each plugin repo
 for plugin in "${PLUGINS[@]}"; do
