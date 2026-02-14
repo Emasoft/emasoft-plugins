@@ -216,7 +216,7 @@
         "repo": "Emasoft/emasoft-chat-history"
       },
       "description": "Auto-export chat transcripts before compaction to preserve conversation history using a PreCompact hook.",
-      "version": "1.0.0",
+      "version": "1.0.1",
       "author": {
         "name": "Emasoft",
         "email": "713559+Emasoft@users.noreply.github.com"
