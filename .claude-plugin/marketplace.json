@@ -216,7 +216,7 @@
         "repo": "Emasoft/emasoft-chat-history"
       },
       "description": "Exports current session segment (since last compaction) with system-reminder stripping -- main conversation, subagent transcripts, sidechains, and debug logs in structured markdown.",
-      "version": "1.1.1",
+      "version": "1.1.2",
       "author": {
         "name": "Emasoft",
         "email": "713559+Emasoft@users.noreply.github.com"
