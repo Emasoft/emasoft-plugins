@@ -49,6 +49,8 @@ ALL_PLUGINS=(
     "emasoft-chief-of-staff"
     "emasoft-programmer-agent"
     "emasoft-chat-history"
+    "no-install-linters-expert"
+    "emasoft-universal-clipboard"
 )
 
 # ── Parse arguments ──────────────────────────────────────────────────
