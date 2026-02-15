@@ -216,7 +216,7 @@
         "repo": "Emasoft/emasoft-chat-history"
       },
       "description": "Exports current session segment (since last compaction) with system-reminder stripping -- main conversation, subagent transcripts, sidechains, and debug logs in structured markdown.",
-      "version": "1.1.5",
+      "version": "1.1.6",
       "author": {
         "name": "Emasoft",
         "email": "713559+Emasoft@users.noreply.github.com"
@@ -234,6 +234,63 @@
         "subagents",
         "debug-logs",
         "sidechains"
+      ],
+      "category": "workflow"
+    },
+    {
+      "name": "no-install-linters-expert",
+      "source": {
+        "source": "github",
+        "repo": "Emasoft/no-install-linters-expert"
+      },
+      "description": "Run linters, formatters, and type-checkers without installing them using uvx, bunx, npx, and other no-install runners. Includes smart executor script and expert agent.",
+      "version": "1.0.1",
+      "author": {
+        "name": "Emasoft",
+        "email": "713559+Emasoft@users.noreply.github.com"
+      },
+      "repository": "https://github.com/Emasoft/no-install-linters-expert",
+      "license": "MIT",
+      "keywords": [
+        "linters",
+        "formatters",
+        "type-checkers",
+        "no-install",
+        "uvx",
+        "bunx",
+        "npx",
+        "ruff",
+        "eslint",
+        "prettier",
+        "mypy"
+      ],
+      "category": "developer-tools"
+    },
+    {
+      "name": "emasoft-universal-clipboard",
+      "source": {
+        "source": "github",
+        "repo": "Emasoft/emasoft-universal-clipboard"
+      },
+      "description": "Cross-platform clipboard operations for Claude Code agents. Native macOS/Windows/WSL support plus Linux scripts with Wayland, X11, and history tracking.",
+      "version": "1.0.1",
+      "author": {
+        "name": "Emasoft",
+        "email": "713559+Emasoft@users.noreply.github.com"
+      },
+      "repository": "https://github.com/Emasoft/emasoft-universal-clipboard",
+      "license": "MIT",
+      "keywords": [
+        "clipboard",
+        "copy",
+        "paste",
+        "cross-platform",
+        "macos",
+        "windows",
+        "wsl",
+        "linux",
+        "wayland",
+        "x11"
       ],
       "category": "workflow"
     }
