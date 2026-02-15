@@ -142,7 +142,7 @@
         "repo": "Emasoft/emasoft-orchestrator-agent"
       },
       "description": "Task distribution, agent coordination, progress monitoring - executes architect's plans via subagents",
-      "version": "1.2.5",
+      "version": "1.2.6",
       "author": {
         "name": "Emasoft",
         "email": "713559+Emasoft@users.noreply.github.com"
@@ -191,7 +191,7 @@
         "repo": "Emasoft/emasoft-programmer-agent"
       },
       "description": "General-purpose programmer agent for code implementation, testing, and debugging across multiple languages (Python, JS/TS, Rust, Go, .NET, C/C++, Swift).",
-      "version": "1.0.4",
+      "version": "1.0.5",
       "author": {
         "name": "Emasoft",
         "email": "713559+Emasoft@users.noreply.github.com"
