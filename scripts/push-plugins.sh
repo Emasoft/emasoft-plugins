@@ -132,8 +132,10 @@ sync_validation_scripts() {
     mkdir -p "$scripts_dir"
 
     # Remove old prefixed validators (e.g., epa_validate_plugin.py, eaa_validate_plugin.py)
+    # NOTE: Only removes prefixed CPV validator copies. Does NOT remove design validators
+    # like eaa_design_validate.py or ecos_design_validate.py which are plugin-specific scripts.
     local removed=0
-    for old in "$scripts_dir"/*_validate_plugin.py "$scripts_dir"/*_validate_marketplace.py "$scripts_dir"/*_validate_hook.py "$scripts_dir"/*_validate_skill.py "$scripts_dir"/*_validate.py; do
+    for old in "$scripts_dir"/*_validate_plugin.py "$scripts_dir"/*_validate_marketplace.py "$scripts_dir"/*_validate_hook.py "$scripts_dir"/*_validate_skill.py; do
         if [ -f "$old" ] && [ "$(basename "$old")" != "validate_plugin.py" ]; then
             rm "$old"
             removed=$((removed + 1))
@@ -160,6 +162,86 @@ sync_validation_scripts() {
 
     if [ "$synced" -gt 0 ]; then
         echo "  Synced $synced validation script(s) from CPV"
+    fi
+}
+
+# ── Git hooks sync ────────────────────────────────────────────────────
+
+sync_git_hooks() {
+    # Copy the generic pre-push hook from CPV templates into the target plugin.
+    # Creates git-hooks/ directory in the plugin if it doesn't exist.
+    # Skips CPV (it has its own specialized hook).
+    local plugin_dir="$1"
+    local plugin_name="$2"
+    local cpv_hooks="$BASE_DIR/claude-plugins-validation/templates/git-hooks"
+    local hooks_dir="$plugin_dir/git-hooks"
+
+    if [ "$plugin_name" = "claude-plugins-validation" ]; then
+        return
+    fi
+
+    if [ ! -d "$cpv_hooks" ]; then
+        return
+    fi
+
+    mkdir -p "$hooks_dir"
+
+    local synced=0
+    for src in "$cpv_hooks"/*; do
+        [ -f "$src" ] || continue
+        local filename
+        filename=$(basename "$src")
+        local dst="$hooks_dir/$filename"
+        if [ -f "$dst" ] && diff -q "$src" "$dst" >/dev/null 2>&1; then
+            continue  # already up to date
+        fi
+        cp "$src" "$dst"
+        chmod +x "$dst"
+        synced=$((synced + 1))
+    done
+
+    if [ "$synced" -gt 0 ]; then
+        echo "  Synced $synced git hook(s) from CPV templates"
+    fi
+}
+
+# ── GitHub Actions workflow sync ──────────────────────────────────────
+
+sync_github_workflows() {
+    # Copy the validate.yml workflow from CPV templates into the target plugin.
+    # Creates .github/workflows/ directory in the plugin if it doesn't exist.
+    # Only syncs validate.yml (plugin validation), not marketplace-specific workflows.
+    # Skips CPV (it has its own specialized workflows).
+    local plugin_dir="$1"
+    local plugin_name="$2"
+    local cpv_workflows="$BASE_DIR/claude-plugins-validation/templates/github-workflows"
+    local workflows_dir="$plugin_dir/.github/workflows"
+
+    if [ "$plugin_name" = "claude-plugins-validation" ]; then
+        return
+    fi
+
+    if [ ! -d "$cpv_workflows" ]; then
+        return
+    fi
+
+    mkdir -p "$workflows_dir"
+
+    local synced=0
+    for src in "$cpv_workflows"/validate.yml "$cpv_workflows"/notify-marketplace.yml; do
+        [ -f "$src" ] || continue
+        local filename
+        filename=$(basename "$src")
+        local dst="$workflows_dir/$filename"
+        if [ -f "$dst" ] && diff -q "$src" "$dst" >/dev/null 2>&1; then
+            continue  # already up to date
+        fi
+        cp "$src" "$dst"
+        synced=$((synced + 1))
+    done
+
+    if [ "$synced" -gt 0 ]; then
+        echo "  Synced $synced workflow(s) from CPV templates"
     fi
 }
 
@@ -363,14 +445,22 @@ for plugin in "${PLUGINS[@]}"; do
     # Sync latest validation scripts from CPV
     sync_validation_scripts "$plugin_dir" "$plugin"
 
+    # Sync git hooks from CPV templates
+    sync_git_hooks "$plugin_dir" "$plugin"
+
+    # Sync GitHub Actions workflows from CPV templates
+    sync_github_workflows "$plugin_dir" "$plugin"
+
     # Dereference any remaining symlinks in scripts/ for publishing
     dereference_symlinks "$plugin_dir" "$plugin"
 
     # Stage any synced or dereferenced files
     git add scripts/ 2>/dev/null || true
+    git add git-hooks/ 2>/dev/null || true
+    git add .github/ 2>/dev/null || true
     if ! git diff --staged --quiet 2>/dev/null; then
-        git commit -m "chore: sync validation scripts from CPV"
-        echo "  Committed updated scripts"
+        git commit -m "chore: sync validation scripts, hooks, and workflows from CPV"
+        echo "  Committed updated scripts, hooks, and workflows"
     fi
 
     # Determine default branch
