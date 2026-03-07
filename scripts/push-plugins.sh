@@ -1,26 +1,25 @@
 #!/usr/bin/env bash
-# Validate plugins from GitHub and push marketplace.
-# Usage: ./scripts/push-plugins.sh [plugin-name ...] [--dry-run] [--no-validate]
+# Validate and push local plugin repos, then push marketplace.
+# Usage: ./scripts/push-plugins.sh [/path/to/plugin ...] [--dry-run] [--no-validate]
 #
-# Plugins live in their own GitHub repos. This script:
-#   1. Clones each plugin from GitHub (shallow) to a temp dir
-#   2. Validates with CPV validate_plugin.py --strict (zero tolerance)
-#   3. Validates marketplace.json with validate_marketplace.py --strict
-#   4. Syncs marketplace.json versions from GitHub plugin.json files
+# Each path must be a local git clone of a plugin repo.
+# The script:
+#   1. Validates each local plugin with CPV validate_plugin.py --strict
+#   2. Pushes each plugin to its own git origin
+#   3. Syncs marketplace.json versions
+#   4. Validates marketplace with CPV validate_marketplace.py --strict
 #   5. Pushes the marketplace repo
 #
-# Individual plugin repos are pushed independently from their own clones.
-# This script only validates them and pushes the marketplace.
+# If no plugin paths given, only the marketplace is validated and pushed.
 #
 # Examples:
-#   ./scripts/push-plugins.sh                     # Validate all + push marketplace
-#   ./scripts/push-plugins.sh --dry-run            # Validate all, don't push
-#   ./scripts/push-plugins.sh claude-plugins-validation  # Validate one + push marketplace
-#   ./scripts/push-plugins.sh --no-validate        # Skip validation (NOT recommended)
+#   ./scripts/push-plugins.sh ~/Code/my-plugin                # One plugin + marketplace
+#   ./scripts/push-plugins.sh ~/Code/plugin1 ~/Code/plugin2   # Multiple + marketplace
+#   ./scripts/push-plugins.sh --dry-run ~/Code/my-plugin      # Validate only, no push
+#   ./scripts/push-plugins.sh                                 # Marketplace only
 
 set -euo pipefail
 
-# Derive paths from the script's own location
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 MARKETPLACE_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 
@@ -31,7 +30,6 @@ find_cpv_dir() {
         echo ""
         return
     fi
-    # Find latest version directory (sort by version number)
     local latest
     latest=$(ls -1d "$cache_base"/*/ 2>/dev/null | sort -t/ -k"$(echo "$cache_base" | tr -cd '/' | wc -c | tr -d ' ')" -V | tail -1)
     if [ -n "$latest" ] && [ -f "${latest}scripts/validate_plugin.py" ]; then
@@ -41,181 +39,168 @@ find_cpv_dir() {
     fi
 }
 
-# Read plugin list and GitHub repos from marketplace.json
-read_marketplace_plugins() {
-    local marketplace_json="$MARKETPLACE_DIR/.claude-plugin/marketplace.json"
-    if [ ! -f "$marketplace_json" ]; then
-        echo "ERROR: marketplace.json not found at $marketplace_json" >&2
-        exit 1
-    fi
-    # Output: name|repo lines
-    python3 -c "
-import json, sys
-with open('$marketplace_json') as f:
-    data = json.load(f)
-for p in data.get('plugins', []):
-    name = p.get('name', '')
-    source = p.get('source', {})
-    repo = ''
-    if isinstance(source, dict):
-        repo = source.get('repo', '')
-    if name and repo:
-        print(f'{name}|{repo}')
-"
-}
-
 # ── Parse arguments ──────────────────────────────────────────────────
 
 DRY_RUN=""
 VALIDATE="yes"
-declare -a REQUESTED_PLUGINS=()
+declare -a PLUGIN_PATHS=()
 
 for arg in "$@"; do
     if [ "$arg" = "--dry-run" ]; then
         DRY_RUN="yes"
     elif [ "$arg" = "--no-validate" ]; then
         VALIDATE=""
-    elif [ "$arg" = "--strict" ]; then
-        VALIDATE="yes"  # legacy alias
     else
-        REQUESTED_PLUGINS+=("$arg")
+        # Resolve to absolute path
+        resolved="$(cd "$arg" 2>/dev/null && pwd)" || {
+            echo "ERROR: '$arg' is not a valid directory"
+            exit 1
+        }
+        PLUGIN_PATHS+=("$resolved")
     fi
 done
 
 # Track results
 declare -a VALIDATED=()
+declare -a PUSHED=()
 declare -a VALIDATION_FAILED_LIST=()
+declare -a PUSH_FAILED_LIST=()
 declare -a SKIPPED=()
 
-# ── Read plugins from marketplace.json ────────────────────────────────
-
-declare -A PLUGIN_REPOS  # name -> github repo
-declare -a ALL_PLUGIN_NAMES=()
-
-while IFS='|' read -r name repo; do
-    PLUGIN_REPOS["$name"]="$repo"
-    ALL_PLUGIN_NAMES+=("$name")
-done < <(read_marketplace_plugins)
-
-# Filter to requested plugins if specified
-if [ ${#REQUESTED_PLUGINS[@]} -gt 0 ]; then
-    PLUGINS=()
-    for req in "${REQUESTED_PLUGINS[@]}"; do
-        if [ -n "${PLUGIN_REPOS[$req]+x}" ]; then
-            PLUGINS+=("$req")
-        else
-            echo "ERROR: Unknown plugin '$req'"
-            echo ""
-            echo "Available plugins (from marketplace.json):"
-            for p in "${ALL_PLUGIN_NAMES[@]}"; do echo "  - $p"; done
-            exit 1
-        fi
-    done
+PLUGIN_COUNT=${#PLUGIN_PATHS[@]}
+echo "============================================================"
+if [ "$PLUGIN_COUNT" -gt 0 ]; then
+    echo "  Validate + push $PLUGIN_COUNT plugin(s) + marketplace"
 else
-    PLUGINS=("${ALL_PLUGIN_NAMES[@]}")
+    echo "  Push marketplace only (no plugin paths given)"
 fi
-
-PLUGIN_COUNT=${#PLUGINS[@]}
 echo "============================================================"
-echo "  Validate $PLUGIN_COUNT plugin(s) + push marketplace"
-echo "============================================================"
-if [ ${#REQUESTED_PLUGINS[@]} -gt 0 ]; then
-    for p in "${PLUGINS[@]}"; do echo "  - $p"; done
-fi
+for p in "${PLUGIN_PATHS[@]}"; do echo "  - $p"; done
 echo ""
 
-# ── Pre-push validation ──────────────────────────────────────────────
+# ── Find CPV ─────────────────────────────────────────────────────────
 
-if [ -n "$VALIDATE" ]; then
-    CPV_DIR=$(find_cpv_dir)
-    if [ -z "$CPV_DIR" ]; then
-        echo "ERROR: CPV plugin not found in cache. Install it first:"
-        echo "  claude /cpv-install-plugin claude-plugins-validation"
-        exit 1
-    fi
+CPV_DIR=$(find_cpv_dir)
+if [ -z "$CPV_DIR" ]; then
+    echo "ERROR: CPV plugin not found in cache. Install it first:"
+    echo "  claude /cpv-install-plugin claude-plugins-validation"
+    exit 1
+fi
 
-    VALIDATOR="$CPV_DIR/scripts/validate_plugin.py"
-    MARKETPLACE_VALIDATOR="$CPV_DIR/scripts/validate_marketplace.py"
+VALIDATOR="$CPV_DIR/scripts/validate_plugin.py"
+MARKETPLACE_VALIDATOR="$CPV_DIR/scripts/validate_marketplace.py"
 
-    echo "Using CPV from: $CPV_DIR"
-    echo ""
-    echo "--- plugin validation (--strict) ---"
+echo "Using CPV from: $CPV_DIR"
+echo ""
 
-    VALIDATION_FAILED=0
-    CLONE_DIR=$(mktemp -d /tmp/cpv-validate-XXXXXX)
-    trap "rm -rf '$CLONE_DIR'" EXIT
+# ── Validate + push each plugin ──────────────────────────────────────
+
+VALIDATION_FAILED=0
+
+if [ "$PLUGIN_COUNT" -gt 0 ]; then
+    echo "--- plugin validation + push (--strict) ---"
 
     set +e
 
-    for plugin in "${PLUGINS[@]}"; do
-        repo="${PLUGIN_REPOS[$plugin]}"
-        clone_path="$CLONE_DIR/$plugin"
-        echo -n "  $plugin (${repo})... "
+    for plugin_path in "${PLUGIN_PATHS[@]}"; do
+        plugin_name=$(basename "$plugin_path")
+        echo -n "  $plugin_name ($plugin_path)... "
 
-        # Shallow clone from GitHub
-        if ! gh repo clone "$repo" "$clone_path" -- --depth 1 -q 2>/dev/null; then
-            echo "CLONE FAILED"
-            VALIDATION_FAILED_LIST+=("$plugin (clone failed)")
+        # Verify it's a git repo
+        if [ ! -d "$plugin_path/.git" ]; then
+            echo "NOT A GIT REPO"
+            VALIDATION_FAILED_LIST+=("$plugin_name (not a git repo)")
             VALIDATION_FAILED=1
             continue
         fi
 
-        # Run CPV with --strict (zero tolerance — even NIT blocks)
-        VOUTPUT=$(cd "$CPV_DIR" && uv run python "$VALIDATOR" "$clone_path" --strict 2>&1)
-        VCODE=$?
-        if [ "$VCODE" -eq 0 ]; then
-            echo "PASSED"
-            VALIDATED+=("$plugin")
-        else
-            echo "BLOCKED (exit $VCODE)"
-            echo "$VOUTPUT" | grep -E "CRITICAL|MAJOR|MINOR|NIT" | head -10
-            VALIDATION_FAILED_LIST+=("$plugin (exit $VCODE)")
+        # Verify it has plugin.json
+        if [ ! -f "$plugin_path/.claude-plugin/plugin.json" ]; then
+            echo "NOT A PLUGIN (no .claude-plugin/plugin.json)"
+            VALIDATION_FAILED_LIST+=("$plugin_name (not a plugin)")
             VALIDATION_FAILED=1
+            continue
+        fi
+
+        # Validate with CPV --strict
+        if [ -n "$VALIDATE" ]; then
+            VOUTPUT=$(cd "$CPV_DIR" && uv run python "$VALIDATOR" "$plugin_path" --strict 2>&1)
+            VCODE=$?
+            if [ "$VCODE" -eq 0 ]; then
+                echo -n "PASSED "
+                VALIDATED+=("$plugin_name")
+            else
+                echo "BLOCKED (exit $VCODE)"
+                echo "$VOUTPUT" | grep -E "CRITICAL|MAJOR|MINOR|NIT" | head -10
+                VALIDATION_FAILED_LIST+=("$plugin_name (exit $VCODE)")
+                VALIDATION_FAILED=1
+                continue
+            fi
+        fi
+
+        # Push to origin
+        BRANCH=$(cd "$plugin_path" && git symbolic-ref --short HEAD 2>/dev/null || echo "main")
+        if [ -n "$DRY_RUN" ]; then
+            echo "DRY-RUN (would push to origin/$BRANCH)"
+            SKIPPED+=("$plugin_name (dry-run)")
+        else
+            if (cd "$plugin_path" && git push origin "$BRANCH" 2>&1); then
+                echo "PUSHED"
+                PUSHED+=("$plugin_name")
+            else
+                echo "PUSH FAILED"
+                PUSH_FAILED_LIST+=("$plugin_name")
+            fi
         fi
     done
-
-    # Validate marketplace.json
-    echo ""
-    echo -n "  marketplace.json... "
-    if [ -f "$MARKETPLACE_VALIDATOR" ]; then
-        VOUTPUT=$(cd "$CPV_DIR" && uv run python "$MARKETPLACE_VALIDATOR" "$MARKETPLACE_DIR" --strict 2>&1)
-        VCODE=$?
-        if [ "$VCODE" -eq 0 ]; then
-            echo "PASSED"
-        else
-            echo "BLOCKED (exit $VCODE)"
-            echo "$VOUTPUT" | grep -E "CRITICAL|MAJOR|MINOR|NIT" | head -10
-            VALIDATION_FAILED=1
-        fi
-    else
-        echo "SKIPPED (validator not found)"
-    fi
 
     set -e
 
     echo ""
     if [ "$VALIDATION_FAILED" -eq 1 ]; then
-        echo "ERROR: Validation failed. Fix ALL issues before pushing."
+        echo "ERROR: Validation failed for some plugins. Fix issues before pushing."
         echo ""
-        echo "Failed plugins:"
+        echo "Failed:"
         for f in "${VALIDATION_FAILED_LIST[@]}"; do echo "  ! $f"; done
         exit 1
     fi
-    echo "  All validations passed."
-    echo ""
 fi
 
-# ── Sync versions from GitHub into marketplace.json ──────────────────
+# ── Validate marketplace ─────────────────────────────────────────────
+
+echo "--- marketplace validation (--strict) ---"
+
+if [ -n "$VALIDATE" ] && [ -f "$MARKETPLACE_VALIDATOR" ]; then
+    echo -n "  marketplace.json... "
+    set +e
+    VOUTPUT=$(cd "$CPV_DIR" && uv run python "$MARKETPLACE_VALIDATOR" "$MARKETPLACE_DIR" --strict 2>&1)
+    VCODE=$?
+    set -e
+    if [ "$VCODE" -eq 0 ]; then
+        echo "PASSED"
+    else
+        echo "BLOCKED (exit $VCODE)"
+        echo "$VOUTPUT" | grep -E "CRITICAL|MAJOR|MINOR|NIT" | head -10
+        echo ""
+        echo "ERROR: Marketplace validation failed. Fix issues before pushing."
+        exit 1
+    fi
+else
+    echo "  SKIPPED"
+fi
+echo ""
+
+# ── Sync versions into marketplace.json ──────────────────────────────
 
 echo "--- marketplace version sync ---"
 cd "$MARKETPLACE_DIR"
 
 if [ -f "scripts/sync_marketplace_versions.py" ]; then
-    echo "  Syncing versions from GitHub..."
+    echo "  Syncing versions..."
     uv run python scripts/sync_marketplace_versions.py --quiet 2>&1 || true
 fi
 
-# Check if marketplace.json changed
+# Commit if marketplace.json changed
 if ! git diff --quiet .claude-plugin/marketplace.json 2>/dev/null; then
     git add .claude-plugin/marketplace.json
     git commit -m "chore: sync marketplace.json plugin versions"
@@ -252,9 +237,9 @@ else
         done
         if [ "$MARKETPLACE_PUSHED" -eq 1 ]; then
             echo "  PUSHED marketplace"
+            PUSHED+=("marketplace")
         else
             echo "  FAILED marketplace (after 3 attempts)"
-            echo ""
             exit 1
         fi
     fi
@@ -271,9 +256,17 @@ if [ ${#VALIDATED[@]} -gt 0 ]; then
     echo "  VALIDATED (${#VALIDATED[@]}):"
     for p in "${VALIDATED[@]}"; do echo "    ✓ $p"; done
 fi
+if [ ${#PUSHED[@]} -gt 0 ]; then
+    echo "  PUSHED (${#PUSHED[@]}):"
+    for p in "${PUSHED[@]}"; do echo "    ✓ $p"; done
+fi
 if [ ${#SKIPPED[@]} -gt 0 ]; then
     echo "  SKIPPED (${#SKIPPED[@]}):"
     for s in "${SKIPPED[@]}"; do echo "    - $s"; done
+fi
+if [ ${#PUSH_FAILED_LIST[@]} -gt 0 ]; then
+    echo "  PUSH FAILED (${#PUSH_FAILED_LIST[@]}):"
+    for f in "${PUSH_FAILED_LIST[@]}"; do echo "    ✗ $f"; done
 fi
 echo ""
 echo "Done."
