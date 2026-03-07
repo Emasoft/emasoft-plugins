@@ -1,534 +1,217 @@
 #!/usr/bin/env bash
-# Push plugin repos and marketplace sequentially.
-# Usage: ./scripts/push-plugins.sh [plugin-name ...] [--dry-run]
+# Validate plugins from GitHub and push marketplace.
+# Usage: ./scripts/push-plugins.sh [plugin-name ...] [--dry-run] [--no-validate]
 #
-# If no plugin names given, pushes ALL plugins.
-# If plugin names given, pushes only those plugins.
+# Plugins live in their own GitHub repos. This script:
+#   1. Clones each plugin from GitHub (shallow) to a temp dir
+#   2. Validates with CPV validate_plugin.py --strict (zero tolerance)
+#   3. Validates marketplace.json with validate_marketplace.py --strict
+#   4. Syncs marketplace.json versions from GitHub plugin.json files
+#   5. Pushes the marketplace repo
 #
-# Before pushing:
-#   - Validates ALL plugins and marketplace.json (zero tolerance — any issue blocks push)
-#   - Auto-bumps patch version (X.Y.Z → X.Y.Z+1) in plugin.json for each plugin with unpushed commits
-#   - Dereferences symlinks in scripts/ to real files (so GitHub repos are self-contained)
-#   - Commits synced scripts and version bumps
-#   - Pushes
-#   - Restores symlinks locally after push
-#
-# Validation is mandatory by default. Use --no-validate to skip (NOT recommended).
-# Version bump is automatic by default. Use --no-bump to skip.
-#
-# After pushing plugins:
-#   - Syncs marketplace.json versions from OUTPUT_SKILLS (picks up bumped versions)
-#   - Pushes marketplace
+# Individual plugin repos are pushed independently from their own clones.
+# This script only validates them and pushes the marketplace.
 #
 # Examples:
-#   ./scripts/push-plugins.sh                          # Push all plugins (with auto-bump)
-#   ./scripts/push-plugins.sh emasoft-chat-history      # Push one plugin (with auto-bump)
-#   ./scripts/push-plugins.sh perfect-skill-suggester claude-plugins-validation  # Push two
-#   ./scripts/push-plugins.sh --dry-run                # Dry-run all
-#   ./scripts/push-plugins.sh emasoft-chat-history --dry-run  # Dry-run one
-#   ./scripts/push-plugins.sh --no-validate            # Skip pre-push validation (NOT recommended)
-#   ./scripts/push-plugins.sh --no-bump                # Skip auto version bump
-#   ./scripts/push-plugins.sh --no-validate --no-bump  # Skip both
+#   ./scripts/push-plugins.sh                     # Validate all + push marketplace
+#   ./scripts/push-plugins.sh --dry-run            # Validate all, don't push
+#   ./scripts/push-plugins.sh claude-plugins-validation  # Validate one + push marketplace
+#   ./scripts/push-plugins.sh --no-validate        # Skip validation (NOT recommended)
 
 set -euo pipefail
 
 # Derive paths from the script's own location
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 MARKETPLACE_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
-BASE_DIR="$MARKETPLACE_DIR/OUTPUT_SKILLS"
-VALIDATOR="$BASE_DIR/claude-plugins-validation/scripts/validate_plugin.py"
 
-# All known plugins in push order
-ALL_PLUGINS=(
-    "claude-plugins-validation"
-    "perfect-skill-suggester"
-    "emasoft-architect-agent"
-    "emasoft-assistant-manager-agent"
-    "emasoft-integrator-agent"
-    "emasoft-orchestrator-agent"
-    "emasoft-chief-of-staff"
-    "emasoft-programmer-agent"
-    "emasoft-chat-history"
-    "no-install-linters-expert"
-    "emasoft-universal-clipboard"
-)
+# Find the CPV validator from the plugin cache (latest installed version)
+find_cpv_dir() {
+    local cache_base="$HOME/.claude/plugins/cache/emasoft-plugins/claude-plugins-validation"
+    if [ ! -d "$cache_base" ]; then
+        echo ""
+        return
+    fi
+    # Find latest version directory (sort by version number)
+    local latest
+    latest=$(ls -1d "$cache_base"/*/ 2>/dev/null | sort -t/ -k"$(echo "$cache_base" | tr -cd '/' | wc -c | tr -d ' ')" -V | tail -1)
+    if [ -n "$latest" ] && [ -f "${latest}scripts/validate_plugin.py" ]; then
+        echo "${latest}"
+    else
+        echo ""
+    fi
+}
+
+# Read plugin list and GitHub repos from marketplace.json
+read_marketplace_plugins() {
+    local marketplace_json="$MARKETPLACE_DIR/.claude-plugin/marketplace.json"
+    if [ ! -f "$marketplace_json" ]; then
+        echo "ERROR: marketplace.json not found at $marketplace_json" >&2
+        exit 1
+    fi
+    # Output: name|repo lines
+    python3 -c "
+import json, sys
+with open('$marketplace_json') as f:
+    data = json.load(f)
+for p in data.get('plugins', []):
+    name = p.get('name', '')
+    source = p.get('source', {})
+    repo = ''
+    if isinstance(source, dict):
+        repo = source.get('repo', '')
+    if name and repo:
+        print(f'{name}|{repo}')
+"
+}
 
 # ── Parse arguments ──────────────────────────────────────────────────
 
 DRY_RUN=""
-VALIDATE="yes"  # Validation is ON by default (was --strict opt-in, now default)
-NO_BUMP=""       # Auto-bump is ON by default; --no-bump disables it
+VALIDATE="yes"
 declare -a REQUESTED_PLUGINS=()
 
 for arg in "$@"; do
     if [ "$arg" = "--dry-run" ]; then
-        DRY_RUN="--dry-run"
+        DRY_RUN="yes"
     elif [ "$arg" = "--no-validate" ]; then
         VALIDATE=""
-    elif [ "$arg" = "--no-bump" ]; then
-        NO_BUMP="yes"
     elif [ "$arg" = "--strict" ]; then
-        # Legacy alias, still works (validation is default now)
-        VALIDATE="yes"
+        VALIDATE="yes"  # legacy alias
     else
         REQUESTED_PLUGINS+=("$arg")
     fi
 done
 
-# If no plugins specified, push all
-if [ ${#REQUESTED_PLUGINS[@]} -eq 0 ]; then
-    PLUGINS=("${ALL_PLUGINS[@]}")
-else
-    # Validate requested plugin names
+# Track results
+declare -a VALIDATED=()
+declare -a VALIDATION_FAILED_LIST=()
+declare -a SKIPPED=()
+
+# ── Read plugins from marketplace.json ────────────────────────────────
+
+declare -A PLUGIN_REPOS  # name -> github repo
+declare -a ALL_PLUGIN_NAMES=()
+
+while IFS='|' read -r name repo; do
+    PLUGIN_REPOS["$name"]="$repo"
+    ALL_PLUGIN_NAMES+=("$name")
+done < <(read_marketplace_plugins)
+
+# Filter to requested plugins if specified
+if [ ${#REQUESTED_PLUGINS[@]} -gt 0 ]; then
     PLUGINS=()
     for req in "${REQUESTED_PLUGINS[@]}"; do
-        found=0
-        for known in "${ALL_PLUGINS[@]}"; do
-            if [ "$req" = "$known" ]; then
-                found=1
-                break
-            fi
-        done
-        if [ "$found" -eq 1 ]; then
+        if [ -n "${PLUGIN_REPOS[$req]+x}" ]; then
             PLUGINS+=("$req")
         else
             echo "ERROR: Unknown plugin '$req'"
             echo ""
-            echo "Available plugins:"
-            for p in "${ALL_PLUGINS[@]}"; do echo "  - $p"; done
+            echo "Available plugins (from marketplace.json):"
+            for p in "${ALL_PLUGIN_NAMES[@]}"; do echo "  - $p"; done
             exit 1
         fi
     done
+else
+    PLUGINS=("${ALL_PLUGIN_NAMES[@]}")
 fi
 
-# Track results
-declare -a PUSHED=()
-declare -a SKIPPED=()
-declare -a FAILED=()
-
-# ── Validation scripts sync ────────────────────────────────────────────
-
-# ── Validation scripts sync ────────────────────────────────────────────
-
-sync_validation_scripts() {
-    # Copy ALL validate_*.py scripts from the CPV plugin into the target plugin.
-    # This ensures every published plugin is self-contained with the latest validators.
-    # Also removes obsolete prefixed validators (e.g., epa_validate_plugin.py).
-    # Skips the CPV plugin itself (it already has the originals).
-    local plugin_dir="$1"
-    local plugin_name="$2"
-    local cpv_scripts="$BASE_DIR/claude-plugins-validation/scripts"
-    local scripts_dir="$plugin_dir/scripts"
-
-    if [ "$plugin_name" = "claude-plugins-validation" ]; then
-        return
-    fi
-
-    if [ ! -d "$cpv_scripts" ]; then
-        echo "  WARNING: CPV scripts dir not found, skipping validation sync"
-        return
-    fi
-
-    mkdir -p "$scripts_dir"
-
-    # Remove old prefixed validators (e.g., epa_validate_plugin.py, eaa_validate_plugin.py)
-    # NOTE: Only removes prefixed CPV validator copies. Does NOT remove design validators
-    # like eaa_design_validate.py or ecos_design_validate.py which are plugin-specific scripts.
-    local removed=0
-    for old in "$scripts_dir"/*_validate_plugin.py "$scripts_dir"/*_validate_marketplace.py "$scripts_dir"/*_validate_hook.py "$scripts_dir"/*_validate_skill.py; do
-        if [ -f "$old" ] && [ "$(basename "$old")" != "validate_plugin.py" ]; then
-            rm "$old"
-            removed=$((removed + 1))
-        fi
-    done
-    if [ "$removed" -gt 0 ]; then
-        echo "  Removed $removed obsolete prefixed validator(s)"
-    fi
-
-    # Copy all validate_*.py, validation_common.py, and smart_exec.py from CPV
-    local synced=0
-    for src in "$cpv_scripts"/validate_*.py "$cpv_scripts"/validation_common.py "$cpv_scripts"/smart_exec.py; do
-        [ -f "$src" ] || continue
-        local filename
-        filename=$(basename "$src")
-        local dst="$scripts_dir/$filename"
-        if [ -f "$dst" ] && diff -q "$src" "$dst" >/dev/null 2>&1; then
-            continue  # already up to date
-        fi
-        cp "$src" "$dst"
-        chmod +x "$dst"
-        synced=$((synced + 1))
-    done
-
-    if [ "$synced" -gt 0 ]; then
-        echo "  Synced $synced validation script(s) from CPV"
-    fi
-}
-
-# ── Git hooks sync ────────────────────────────────────────────────────
-
-sync_git_hooks() {
-    # Copy the generic pre-push hook from CPV templates into the target plugin.
-    # Creates git-hooks/ directory in the plugin if it doesn't exist.
-    # Skips CPV (it has its own specialized hook).
-    local plugin_dir="$1"
-    local plugin_name="$2"
-    local cpv_hooks="$BASE_DIR/claude-plugins-validation/templates/git-hooks"
-    local hooks_dir="$plugin_dir/git-hooks"
-
-    if [ "$plugin_name" = "claude-plugins-validation" ]; then
-        return
-    fi
-
-    if [ ! -d "$cpv_hooks" ]; then
-        return
-    fi
-
-    mkdir -p "$hooks_dir"
-
-    local synced=0
-    for src in "$cpv_hooks"/*; do
-        [ -f "$src" ] || continue
-        local filename
-        filename=$(basename "$src")
-        local dst="$hooks_dir/$filename"
-        if [ -f "$dst" ] && diff -q "$src" "$dst" >/dev/null 2>&1; then
-            continue  # already up to date
-        fi
-        cp "$src" "$dst"
-        chmod +x "$dst"
-        synced=$((synced + 1))
-    done
-
-    if [ "$synced" -gt 0 ]; then
-        echo "  Synced $synced git hook(s) from CPV templates"
-    fi
-}
-
-# ── GitHub Actions workflow sync ──────────────────────────────────────
-
-sync_github_workflows() {
-    # Copy the validate.yml workflow from CPV templates into the target plugin.
-    # Creates .github/workflows/ directory in the plugin if it doesn't exist.
-    # Only syncs validate.yml (plugin validation), not marketplace-specific workflows.
-    # Skips CPV (it has its own specialized workflows).
-    local plugin_dir="$1"
-    local plugin_name="$2"
-    local cpv_workflows="$BASE_DIR/claude-plugins-validation/templates/github-workflows"
-    local workflows_dir="$plugin_dir/.github/workflows"
-
-    if [ "$plugin_name" = "claude-plugins-validation" ]; then
-        return
-    fi
-
-    if [ ! -d "$cpv_workflows" ]; then
-        return
-    fi
-
-    mkdir -p "$workflows_dir"
-
-    local synced=0
-    for src in "$cpv_workflows"/validate.yml "$cpv_workflows"/notify-marketplace.yml; do
-        [ -f "$src" ] || continue
-        local filename
-        filename=$(basename "$src")
-        local dst="$workflows_dir/$filename"
-        if [ -f "$dst" ] && diff -q "$src" "$dst" >/dev/null 2>&1; then
-            continue  # already up to date
-        fi
-        cp "$src" "$dst"
-        synced=$((synced + 1))
-    done
-
-    if [ "$synced" -gt 0 ]; then
-        echo "  Synced $synced workflow(s) from CPV templates"
-    fi
-}
-
-# ── Symlink dereference/restore helpers ──────────────────────────────
-
-dereference_symlinks() {
-    # Replace symlinks in scripts/ with real file copies for publishing.
-    # Saves a map file to /tmp so we can restore after push.
-    local plugin_dir="$1"
-    local plugin_name="$2"
-    local scripts_dir="$plugin_dir/scripts"
-    local map_file="/tmp/.symlink_map_${plugin_name}"
-
-    rm -f "$map_file"
-
-    if [ ! -d "$scripts_dir" ]; then
-        return
-    fi
-
-    local found=0
-    for f in "$scripts_dir"/*; do
-        if [ -L "$f" ]; then
-            local rel_target
-            rel_target=$(readlink "$f")             # original relative symlink target
-            local abs_target
-            abs_target=$(readlink -f "$f" 2>/dev/null || echo "")  # resolved absolute path
-            if [ -n "$abs_target" ] && [ -f "$abs_target" ]; then
-                echo "$(basename "$f")|$rel_target" >> "$map_file"
-                rm "$f"
-                cp "$abs_target" "$f"
-                found=$((found + 1))
-            else
-                echo "  WARNING: broken symlink $f -> $rel_target (target not found, skipping)"
-            fi
-        fi
-    done
-
-    if [ "$found" -gt 0 ]; then
-        echo "  Dereferenced $found symlink(s) in scripts/"
-    fi
-}
-
-restore_symlinks() {
-    # Restore symlinks from the saved map file after push.
-    local plugin_dir="$1"
-    local plugin_name="$2"
-    local scripts_dir="$plugin_dir/scripts"
-    local map_file="/tmp/.symlink_map_${plugin_name}"
-
-    if [ ! -f "$map_file" ]; then
-        return
-    fi
-
-    while IFS='|' read -r filename rel_target; do
-        local link_path="$scripts_dir/$filename"
-        if [ -f "$link_path" ] || [ -L "$link_path" ]; then
-            rm "$link_path"
-        fi
-        ln -s "$rel_target" "$link_path"
-    done < "$map_file"
-
-    rm -f "$map_file"
-    echo "  Restored symlinks in scripts/"
-}
-
-# ── Version bump helper ──────────────────────────────────────────────
-
-bump_patch_version() {
-    # Bump patch version (X.Y.Z → X.Y.Z+1) in plugin.json and commit.
-    # Only bumps if there are unpushed commits or uncommitted changes.
-    # Returns 0 if bumped, 1 if skipped.
-    local plugin_dir="$1"
-    local plugin_name="$2"
-    local plugin_json="$plugin_dir/.claude-plugin/plugin.json"
-
-    if [ ! -f "$plugin_json" ]; then
-        echo "  WARNING: No plugin.json found, skipping version bump"
-        return 1
-    fi
-
-    # Read current version and compute bumped version
-    local NEW_VERSION
-    NEW_VERSION=$(python3 -c "
-import json, sys
-with open('$plugin_json') as f:
-    d = json.load(f)
-v = d.get('version', '0.0.0')
-parts = v.split('.')
-parts[-1] = str(int(parts[-1]) + 1)
-new_v = '.'.join(parts)
-# Write back with same formatting
-d['version'] = new_v
-with open('$plugin_json', 'w') as f:
-    json.dump(d, f, indent=2)
-    f.write('\n')
-print(new_v)
-" 2>&1)
-
-    if [ $? -ne 0 ]; then
-        echo "  WARNING: Failed to bump version: $NEW_VERSION"
-        return 1
-    fi
-
-    git add .claude-plugin/plugin.json
-    git commit -m "chore: bump version to $NEW_VERSION"
-    echo "  Bumped version to $NEW_VERSION"
-    return 0
-}
-
-# ── Main ─────────────────────────────────────────────────────────────
-
 PLUGIN_COUNT=${#PLUGINS[@]}
-if [ "$PLUGIN_COUNT" -eq ${#ALL_PLUGINS[@]} ]; then
-    echo "============================================================"
-    echo "  Push All Plugins (sequential)"
-    echo "============================================================"
-else
-    echo "============================================================"
-    echo "  Push $PLUGIN_COUNT plugin(s) (sequential)"
-    echo "============================================================"
+echo "============================================================"
+echo "  Validate $PLUGIN_COUNT plugin(s) + push marketplace"
+echo "============================================================"
+if [ ${#REQUESTED_PLUGINS[@]} -gt 0 ]; then
     for p in "${PLUGINS[@]}"; do echo "  - $p"; done
 fi
 echo ""
 
-# ── Pre-push validation (runs by default, skip with --no-validate) ───
+# ── Pre-push validation ──────────────────────────────────────────────
+
 if [ -n "$VALIDATE" ]; then
-    echo "--- pre-push validation ---"
-    if [ ! -f "$VALIDATOR" ]; then
-        echo "  ERROR: Plugin validator not found at $VALIDATOR"
+    CPV_DIR=$(find_cpv_dir)
+    if [ -z "$CPV_DIR" ]; then
+        echo "ERROR: CPV plugin not found in cache. Install it first:"
+        echo "  claude /cpv-install-plugin claude-plugins-validation"
         exit 1
     fi
-    VALIDATOR_DIR="$BASE_DIR/claude-plugins-validation"
-    MARKETPLACE_VALIDATOR="$VALIDATOR_DIR/scripts/validate_marketplace.py"
-    VALIDATION_FAILED=0
 
-    # Temporarily disable set -e so validation failures don't kill the script
+    VALIDATOR="$CPV_DIR/scripts/validate_plugin.py"
+    MARKETPLACE_VALIDATOR="$CPV_DIR/scripts/validate_marketplace.py"
+
+    echo "Using CPV from: $CPV_DIR"
+    echo ""
+    echo "--- plugin validation (--strict) ---"
+
+    VALIDATION_FAILED=0
+    CLONE_DIR=$(mktemp -d /tmp/cpv-validate-XXXXXX)
+    trap "rm -rf '$CLONE_DIR'" EXIT
+
     set +e
 
-    # Validate each plugin
-    # Exit codes: 0=clean, 1=CRITICAL, 2=MAJOR, 3=MINOR-only
-    # Block push on ANY non-zero exit code (zero tolerance).
     for plugin in "${PLUGINS[@]}"; do
-        plugin_dir="$BASE_DIR/$plugin"
-        echo -n "  Validating $plugin... "
-        # Run validator from its own directory so uv picks up its dependencies
-        VOUTPUT=$(cd "$VALIDATOR_DIR" && uv run python "$VALIDATOR" "$plugin_dir" 2>&1)
+        repo="${PLUGIN_REPOS[$plugin]}"
+        clone_path="$CLONE_DIR/$plugin"
+        echo -n "  $plugin (${repo})... "
+
+        # Shallow clone from GitHub
+        if ! gh repo clone "$repo" "$clone_path" -- --depth 1 -q 2>/dev/null; then
+            echo "CLONE FAILED"
+            VALIDATION_FAILED_LIST+=("$plugin (clone failed)")
+            VALIDATION_FAILED=1
+            continue
+        fi
+
+        # Run CPV with --strict (zero tolerance — even NIT blocks)
+        VOUTPUT=$(cd "$CPV_DIR" && uv run python "$VALIDATOR" "$clone_path" --strict 2>&1)
         VCODE=$?
         if [ "$VCODE" -eq 0 ]; then
-            echo "PASSED (clean)"
+            echo "PASSED"
+            VALIDATED+=("$plugin")
         else
-            echo "BLOCKED (exit code $VCODE)"
-            echo "$VOUTPUT" | grep -E "CRITICAL|MAJOR|MINOR" | head -10
-            echo "  BLOCKED: $plugin has validation issues (exit code $VCODE)"
+            echo "BLOCKED (exit $VCODE)"
+            echo "$VOUTPUT" | grep -E "CRITICAL|MAJOR|MINOR|NIT" | head -10
+            VALIDATION_FAILED_LIST+=("$plugin (exit $VCODE)")
             VALIDATION_FAILED=1
         fi
     done
 
     # Validate marketplace.json
+    echo ""
+    echo -n "  marketplace.json... "
     if [ -f "$MARKETPLACE_VALIDATOR" ]; then
-        echo -n "  Validating marketplace.json... "
-        VOUTPUT=$(cd "$VALIDATOR_DIR" && uv run python "$MARKETPLACE_VALIDATOR" "$MARKETPLACE_DIR" 2>&1)
+        VOUTPUT=$(cd "$CPV_DIR" && uv run python "$MARKETPLACE_VALIDATOR" "$MARKETPLACE_DIR" --strict 2>&1)
         VCODE=$?
         if [ "$VCODE" -eq 0 ]; then
-            echo "PASSED (clean)"
+            echo "PASSED"
         else
-            echo "BLOCKED (exit code $VCODE)"
-            echo "$VOUTPUT" | grep -E "CRITICAL|MAJOR|MINOR" | head -10
-            echo "  BLOCKED: marketplace.json has validation issues (exit code $VCODE)"
+            echo "BLOCKED (exit $VCODE)"
+            echo "$VOUTPUT" | grep -E "CRITICAL|MAJOR|MINOR|NIT" | head -10
             VALIDATION_FAILED=1
         fi
     else
-        echo "  WARNING: Marketplace validator not found at $MARKETPLACE_VALIDATOR"
+        echo "SKIPPED (validator not found)"
     fi
 
-    # Re-enable set -e
     set -e
 
     echo ""
     if [ "$VALIDATION_FAILED" -eq 1 ]; then
-        echo "ERROR: Pre-push validation failed. ALL issues (including MINOR) must be fixed before pushing."
+        echo "ERROR: Validation failed. Fix ALL issues before pushing."
+        echo ""
+        echo "Failed plugins:"
+        for f in "${VALIDATION_FAILED_LIST[@]}"; do echo "  ! $f"; done
         exit 1
     fi
     echo "  All validations passed."
     echo ""
 fi
 
-# Phase 1: Push each plugin repo
-for plugin in "${PLUGINS[@]}"; do
-    plugin_dir="$BASE_DIR/$plugin"
-    echo "--- $plugin ---"
+# ── Sync versions from GitHub into marketplace.json ──────────────────
 
-    if [ ! -d "$plugin_dir/.git" ]; then
-        echo "  SKIP: no git repo"
-        SKIPPED+=("$plugin (no git)")
-        echo ""
-        continue
-    fi
-
-    cd "$plugin_dir"
-
-    # Sync latest validation scripts from CPV
-    sync_validation_scripts "$plugin_dir" "$plugin"
-
-    # Sync git hooks from CPV templates
-    sync_git_hooks "$plugin_dir" "$plugin"
-
-    # Sync GitHub Actions workflows from CPV templates
-    sync_github_workflows "$plugin_dir" "$plugin"
-
-    # Dereference any remaining symlinks in scripts/ for publishing
-    dereference_symlinks "$plugin_dir" "$plugin"
-
-    # Stage any synced or dereferenced files
-    git add scripts/ 2>/dev/null || true
-    git add git-hooks/ 2>/dev/null || true
-    git add .github/ 2>/dev/null || true
-    if ! git diff --staged --quiet 2>/dev/null; then
-        git commit -m "chore: sync validation scripts, hooks, and workflows from CPV"
-        echo "  Committed updated scripts, hooks, and workflows"
-    fi
-
-    # Determine default branch
-    BRANCH=$(git symbolic-ref --short HEAD 2>/dev/null || echo "main")
-
-    # Auto-bump patch version if there are unpushed commits (unless --no-bump)
-    if [ -z "$NO_BUMP" ]; then
-        LOCAL_PRE=$(git rev-parse HEAD 2>/dev/null)
-        REMOTE_PRE=$(git rev-parse "origin/$BRANCH" 2>/dev/null || echo "none")
-        if [ "$LOCAL_PRE" != "$REMOTE_PRE" ]; then
-            bump_patch_version "$plugin_dir" "$plugin" || true
-        fi
-    fi
-
-    # Check if there are unpushed commits
-    LOCAL=$(git rev-parse HEAD 2>/dev/null)
-    REMOTE=$(git rev-parse "origin/$BRANCH" 2>/dev/null || echo "none")
-
-    if [ "$LOCAL" = "$REMOTE" ]; then
-        # Nothing to push -- restore symlinks and skip
-        restore_symlinks "$plugin_dir" "$plugin"
-        echo "  SKIP: already up to date ($BRANCH)"
-        SKIPPED+=("$plugin (up to date)")
-        echo ""
-        continue
-    fi
-
-    AHEAD=$(git rev-list --count "origin/$BRANCH..HEAD" 2>/dev/null || echo "?")
-    echo "  $AHEAD commit(s) ahead of origin/$BRANCH"
-
-    if [ "$DRY_RUN" = "--dry-run" ]; then
-        # Restore symlinks on dry-run
-        restore_symlinks "$plugin_dir" "$plugin"
-        echo "  DRY-RUN: would push to origin/$BRANCH"
-        SKIPPED+=("$plugin (dry-run)")
-    else
-        if git push origin "$BRANCH" 2>&1; then
-            # Also push any tags
-            if git push origin --tags 2>&1; then
-                echo "  PUSHED (with tags)"
-            else
-                echo "  PUSHED (branch only, tags failed)"
-            fi
-            PUSHED+=("$plugin")
-        else
-            echo "  FAILED"
-            FAILED+=("$plugin")
-        fi
-        # Restore symlinks after push (local working tree goes back to symlinks)
-        restore_symlinks "$plugin_dir" "$plugin"
-    fi
-    echo ""
-
-    # Small delay to avoid GitHub rate limits
-    sleep 2
-done
-
-# Brief wait for GitHub to propagate pushed refs
-echo "Waiting 5s for GitHub to propagate pushed refs..."
-sleep 5
-
-# Phase 2: Update marketplace versions and push
-echo "--- marketplace ---"
+echo "--- marketplace version sync ---"
 cd "$MARKETPLACE_DIR"
 
-# Sync versions from OUTPUT_SKILLS to marketplace.json
 if [ -f "scripts/sync_marketplace_versions.py" ]; then
-    echo "  Syncing versions from OUTPUT_SKILLS..."
+    echo "  Syncing versions from GitHub..."
     uv run python scripts/sync_marketplace_versions.py --quiet 2>&1 || true
 fi
 
@@ -536,9 +219,14 @@ fi
 if ! git diff --quiet .claude-plugin/marketplace.json 2>/dev/null; then
     git add .claude-plugin/marketplace.json
     git commit -m "chore: sync marketplace.json plugin versions"
+    echo "  Committed version sync"
 fi
 
-# Pull remote changes (from auto-update workflows) and push
+# ── Push marketplace ─────────────────────────────────────────────────
+
+echo ""
+echo "--- marketplace push ---"
+
 BRANCH=$(git symbolic-ref --short HEAD 2>/dev/null || echo "main")
 LOCAL=$(git rev-parse HEAD 2>/dev/null)
 REMOTE=$(git rev-parse "origin/$BRANCH" 2>/dev/null || echo "none")
@@ -547,8 +235,8 @@ if [ "$LOCAL" = "$REMOTE" ] && git diff --staged --quiet 2>/dev/null; then
     echo "  SKIP: marketplace already up to date"
     SKIPPED+=("marketplace (up to date)")
 else
-    if [ "$DRY_RUN" = "--dry-run" ]; then
-        echo "  DRY-RUN: would push marketplace"
+    if [ -n "$DRY_RUN" ]; then
+        echo "  DRY-RUN: would push marketplace to origin/$BRANCH"
         SKIPPED+=("marketplace (dry-run)")
     else
         MARKETPLACE_PUSHED=0
@@ -564,33 +252,28 @@ else
         done
         if [ "$MARKETPLACE_PUSHED" -eq 1 ]; then
             echo "  PUSHED marketplace"
-            PUSHED+=("marketplace")
         else
             echo "  FAILED marketplace (after 3 attempts)"
-            FAILED+=("marketplace")
+            echo ""
+            exit 1
         fi
     fi
 fi
 
-# Summary
+# ── Summary ──────────────────────────────────────────────────────────
+
 echo ""
 echo "============================================================"
 echo "  Results"
 echo "============================================================"
 echo ""
-if [ ${#PUSHED[@]} -gt 0 ]; then
-    echo "  PUSHED (${#PUSHED[@]}):"
-    for p in "${PUSHED[@]}"; do echo "    + $p"; done
+if [ ${#VALIDATED[@]} -gt 0 ]; then
+    echo "  VALIDATED (${#VALIDATED[@]}):"
+    for p in "${VALIDATED[@]}"; do echo "    ✓ $p"; done
 fi
 if [ ${#SKIPPED[@]} -gt 0 ]; then
     echo "  SKIPPED (${#SKIPPED[@]}):"
     for s in "${SKIPPED[@]}"; do echo "    - $s"; done
-fi
-if [ ${#FAILED[@]} -gt 0 ]; then
-    echo "  FAILED (${#FAILED[@]}):"
-    for f in "${FAILED[@]}"; do echo "    ! $f"; done
-    echo ""
-    exit 1
 fi
 echo ""
 echo "Done."
