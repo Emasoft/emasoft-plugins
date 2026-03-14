@@ -330,7 +330,7 @@
         "repo": "Emasoft/claude-plugins-management"
       },
       "description": "CLI plugin for installing, validating, searching, and managing Claude Code plugins from local sources or GitHub marketplaces. Includes 6 slash commands, an autonomous agent, and 30+ validation checks.",
-      "version": "1.0.1",
+      "version": "1.1.0",
       "author": {
         "name": "Emasoft",
         "email": "713559+Emasoft@users.noreply.github.com"
