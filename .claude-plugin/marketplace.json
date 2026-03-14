@@ -322,6 +322,34 @@
         "todo-generation"
       ],
       "category": "developer-tools"
+    },
+    {
+      "name": "claude-plugins-management",
+      "source": {
+        "source": "github",
+        "repo": "Emasoft/claude-plugins-management"
+      },
+      "description": "CLI plugin for installing, validating, searching, and managing Claude Code plugins from local sources or GitHub marketplaces. Includes 6 slash commands, an autonomous agent, and 30+ validation checks.",
+      "version": "1.0.0",
+      "author": {
+        "name": "Emasoft",
+        "email": "713559+Emasoft@users.noreply.github.com"
+      },
+      "repository": "https://github.com/Emasoft/claude-plugins-management",
+      "license": "MIT",
+      "keywords": [
+        "plugins",
+        "installer",
+        "validator",
+        "marketplace",
+        "management",
+        "hooks",
+        "skills",
+        "mcp",
+        "doctor",
+        "search"
+      ],
+      "category": "developer-tools"
     }
   ]
 }
