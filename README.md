@@ -16,7 +16,7 @@ A collection of high-quality Claude Code plugins for multi-agent development wor
 | emasoft-integrator-agent | 1.1.2 | Agent | Quality gates, code review, testing, and release management |
 | emasoft-programmer-agent | 1.0.1 | Agent | Code implementation, testing, and debugging (Python, JS/TS, Rust, Go, .NET, C/C++, Swift) |
 | [token-reporter](https://github.com/Emasoft/token-reporter-plugin) | 1.2.2 | Developer Tools | Per-operation token usage reporter with cost estimates, cache efficiency, and tool attribution |
-| [llm-externalizer-plugin](https://github.com/Emasoft/llm-externalizer-plugin) | 3.2.0 | Developer Tools | MCP server that offloads LLM tasks to cheaper local or remote models with ensemble mode |
+| [llm-externalizer](https://github.com/Emasoft/llm-externalizer-plugin) | 3.2.0 | Developer Tools | MCP server that offloads LLM tasks to cheaper local or remote models with ensemble mode |
 
 *Last updated: 2026-03-15*
 
@@ -39,7 +39,7 @@ claude plugin marketplace add https://github.com/Emasoft/emasoft-plugins
 claude plugin install perfect-skill-suggester@emasoft-plugins
 claude plugin install claude-plugins-validation@emasoft-plugins
 claude plugin install token-reporter@emasoft-plugins
-claude plugin install llm-externalizer-plugin@emasoft-plugins
+claude plugin install llm-externalizer@emasoft-plugins
 
 # Emasoft agent ecosystem (install the roles you need)
 claude plugin install emasoft-assistant-manager-agent@emasoft-plugins
@@ -388,14 +388,15 @@ claude plugin install token-reporter@emasoft-plugins
 
 ---
 
-### [LLM Externalizer Plugin](https://github.com/Emasoft/llm-externalizer-plugin)
+### [LLM Externalizer](https://github.com/Emasoft/llm-externalizer-plugin)
 
 MCP server that offloads bounded LLM tasks from Claude Code to cheaper local or remote models. Supports LM Studio, Ollama, vLLM, llama.cpp (local) and OpenRouter (remote) with profile-based configuration and ensemble mode.
 
+> **Note:** The plugin name is `llm-externalizer` (used for installation), while the GitHub repo is named `llm-externalizer-plugin`. Always use the plugin name when installing.
+
 **Install:**
 ```bash
-claude plugin install llm-externalizer-plugin@emasoft-plugins
-bash $CLAUDE_PLUGIN_ROOT/scripts/setup.sh  # Build the MCP server
+claude plugin install llm-externalizer@emasoft-plugins
 ```
 
 **Features:**

@@ -380,7 +380,7 @@
       "category": "developer-tools"
     },
     {
-      "name": "llm-externalizer-plugin",
+      "name": "llm-externalizer",
       "source": {
         "source": "github",
         "repo": "Emasoft/llm-externalizer-plugin"
