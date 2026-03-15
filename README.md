@@ -16,6 +16,7 @@ A collection of high-quality Claude Code plugins for multi-agent development wor
 | emasoft-integrator-agent | 1.1.2 | Agent | Quality gates, code review, testing, and release management |
 | emasoft-programmer-agent | 1.0.1 | Agent | Code implementation, testing, and debugging (Python, JS/TS, Rust, Go, .NET, C/C++, Swift) |
 | [token-reporter](https://github.com/Emasoft/token-reporter-plugin) | 1.2.2 | Developer Tools | Per-operation token usage reporter with cost estimates, cache efficiency, and tool attribution |
+| [llm-externalizer-plugin](https://github.com/Emasoft/llm-externalizer-plugin) | 3.2.0 | Developer Tools | MCP server that offloads LLM tasks to cheaper local or remote models with ensemble mode |
 
 *Last updated: 2026-03-15*
 
@@ -38,6 +39,7 @@ claude plugin marketplace add https://github.com/Emasoft/emasoft-plugins
 claude plugin install perfect-skill-suggester@emasoft-plugins
 claude plugin install claude-plugins-validation@emasoft-plugins
 claude plugin install token-reporter@emasoft-plugins
+claude plugin install llm-externalizer-plugin@emasoft-plugins
 
 # Emasoft agent ecosystem (install the roles you need)
 claude plugin install emasoft-assistant-manager-agent@emasoft-plugins
@@ -383,6 +385,28 @@ claude plugin install token-reporter@emasoft-plugins
 - Debug-mode-only output (no overhead in normal mode)
 
 **Requirements:** uv, Python 3.8+
+
+---
+
+### [LLM Externalizer Plugin](https://github.com/Emasoft/llm-externalizer-plugin)
+
+MCP server that offloads bounded LLM tasks from Claude Code to cheaper local or remote models. Supports LM Studio, Ollama, vLLM, llama.cpp (local) and OpenRouter (remote) with profile-based configuration and ensemble mode.
+
+**Install:**
+```bash
+claude plugin install llm-externalizer-plugin@emasoft-plugins
+bash $CLAUDE_PLUGIN_ROOT/scripts/setup.sh  # Build the MCP server
+```
+
+**Features:**
+- 7 read-only analysis tools (chat, code_task, batch_check, scan_folder, compare_files, check_references, check_imports)
+- Profile-based backend configuration with named profiles
+- Ensemble mode: two models in parallel on OpenRouter
+- Auto-batching for large file sets
+- Secret scanning and redaction
+- 2 auto-discovered skills for tool usage and configuration
+
+**Requirements:** Node.js >= 18, npm. For remote: `OPENROUTER_API_KEY` env var.
 
 ---
 
