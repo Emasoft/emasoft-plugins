@@ -16,7 +16,7 @@ A collection of high-quality Claude Code plugins for multi-agent development wor
 | emasoft-integrator-agent | 1.1.2 | Agent | Quality gates, code review, testing, and release management |
 | emasoft-programmer-agent | 1.0.1 | Agent | Code implementation, testing, and debugging (Python, JS/TS, Rust, Go, .NET, C/C++, Swift) |
 | [token-reporter](https://github.com/Emasoft/token-reporter-plugin) | 1.2.2 | Developer Tools | Per-operation token usage reporter with cost estimates, cache efficiency, and tool attribution |
-| [llm-externalizer](https://github.com/Emasoft/llm-externalizer-plugin) | 3.2.0 | Developer Tools | MCP server that offloads LLM tasks to cheaper local or remote models with ensemble mode |
+| [llm-externalizer](https://github.com/Emasoft/llm-externalizer-plugin) | 3.2.1 | Developer Tools | MCP server that offloads LLM tasks to cheaper local or remote models with ensemble mode |
 
 *Last updated: 2026-03-15*
 
@@ -29,10 +29,18 @@ A collection of high-quality Claude Code plugins for multi-agent development wor
 ### Step 1: Add Marketplace
 
 ```bash
-claude plugin marketplace add https://github.com/Emasoft/emasoft-plugins
+claude plugin marketplace add Emasoft/emasoft-plugins
 ```
 
-### Step 2: Install Plugin
+### Step 2: Update Marketplace Index
+
+```bash
+claude plugin marketplace update emasoft-plugins
+```
+
+This refreshes the local plugin index. **Always run this before installing** to ensure you get the latest available plugins and versions.
+
+### Step 3: Install Plugin
 
 ```bash
 # Utility plugins
@@ -50,15 +58,17 @@ claude plugin install emasoft-integrator-agent@emasoft-plugins
 claude plugin install emasoft-programmer-agent@emasoft-plugins
 ```
 
-### Step 3: Verify Installation
+### Step 4: Verify Installation
 
 ```bash
 claude plugin list
 ```
 
-### Step 4: Restart Claude Code
+### Step 5: Restart Claude Code
 
 **Important:** After installation, you must restart Claude Code for the plugin to take effect.
+
+> **Troubleshooting:** If `claude plugin install` says "Plugin not found", run `claude plugin marketplace update emasoft-plugins` first to refresh the local cache.
 
 ---
 
