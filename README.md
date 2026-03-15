@@ -15,8 +15,9 @@ A collection of high-quality Claude Code plugins for multi-agent development wor
 | emasoft-orchestrator-agent | 1.2.1 | Agent | Task distribution, agent coordination, and progress monitoring |
 | emasoft-integrator-agent | 1.1.2 | Agent | Quality gates, code review, testing, and release management |
 | emasoft-programmer-agent | 1.0.1 | Agent | Code implementation, testing, and debugging (Python, JS/TS, Rust, Go, .NET, C/C++, Swift) |
+| [token-reporter](https://github.com/Emasoft/token-reporter-plugin) | 1.1.0 | Developer Tools | Per-operation token usage reporter with cost estimates, cache efficiency, and tool attribution |
 
-*Last updated: 2026-02-08*
+*Last updated: 2026-03-15*
 
 <!-- PLUGIN-VERSIONS-END -->
 
@@ -36,6 +37,7 @@ claude plugin marketplace add https://github.com/Emasoft/emasoft-plugins
 # Utility plugins
 claude plugin install perfect-skill-suggester@emasoft-plugins
 claude plugin install claude-plugins-validation@emasoft-plugins
+claude plugin install token-reporter@emasoft-plugins
 
 # Emasoft agent ecosystem (install the roles you need)
 claude plugin install emasoft-assistant-manager-agent@emasoft-plugins
@@ -354,6 +356,26 @@ uv run --with pyyaml python scripts/validate_plugin.py . --verbose
 | 1 | Critical issues - plugin broken |
 | 2 | Major issues - some features may fail |
 | 3 | Minor issues - warnings only |
+
+---
+
+### [Token Reporter](https://github.com/Emasoft/token-reporter-plugin)
+
+Per-operation token usage reporter for Claude Code. Shows token counts, cost estimates, tool attribution, cache efficiency, duration, bash commands, web fetches, and file activity when agents complete. **Only outputs in debug mode** (`claude --debug`).
+
+**Features:**
+- Per-operation token counts (input, output, cache-write, cache-read)
+- Cache efficiency percentage
+- Per-tool token attribution (input, output, result-to-input)
+- MCP tools listed vertically with full names
+- Cost estimates based on Anthropic API pricing
+- Duration tracking
+- Bash commands and web fetches listed individually
+- All files (read, edited, written) listed individually
+- Lifetime cost for completed agents, current-operation cost for session
+- Debug-mode-only output (no overhead in normal mode)
+
+**Requirements:** uv, Python 3.8+
 
 ---
 
