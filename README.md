@@ -15,7 +15,7 @@ A collection of high-quality Claude Code plugins for multi-agent development wor
 | emasoft-orchestrator-agent | 1.2.1 | Agent | Task distribution, agent coordination, and progress monitoring |
 | emasoft-integrator-agent | 1.1.2 | Agent | Quality gates, code review, testing, and release management |
 | emasoft-programmer-agent | 1.0.1 | Agent | Code implementation, testing, and debugging (Python, JS/TS, Rust, Go, .NET, C/C++, Swift) |
-| [token-reporter](https://github.com/Emasoft/token-reporter-plugin) | 1.1.0 | Developer Tools | Per-operation token usage reporter with cost estimates, cache efficiency, and tool attribution |
+| [token-reporter](https://github.com/Emasoft/token-reporter-plugin) | 1.2.2 | Developer Tools | Per-operation token usage reporter with cost estimates, cache efficiency, and tool attribution |
 
 *Last updated: 2026-03-15*
 
@@ -363,6 +363,13 @@ uv run --with pyyaml python scripts/validate_plugin.py . --verbose
 
 Per-operation token usage reporter for Claude Code. Shows token counts, cost estimates, tool attribution, cache efficiency, duration, bash commands, web fetches, and file activity when agents complete. **Only outputs in debug mode** (`claude --debug`).
 
+> **Note:** The plugin name is `token-reporter` (used for installation), while the GitHub repo is named `token-reporter-plugin`. Always use the plugin name when installing.
+
+**Install:**
+```bash
+claude plugin install token-reporter@emasoft-plugins
+```
+
 **Features:**
 - Per-operation token counts (input, output, cache-write, cache-read)
 - Cache efficiency percentage
@@ -563,4 +570,5 @@ flowchart TB
 2. **Marketplace Update**: The marketplace's `update-submodules.yml` workflow triggers (via dispatch or scheduled cron)
 3. **Version Sync**: The `sync_marketplace_versions.py` script reads each plugin's version and updates `marketplace.json`
 4. **Auto Commit**: Changes are committed and pushed automatically
+
 
