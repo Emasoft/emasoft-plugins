@@ -406,6 +406,34 @@
         "cost-optimization"
       ],
       "category": "developer-tools"
+    },
+    {
+      "name": "rechecker-plugin",
+      "source": {
+        "source": "github",
+        "repo": "Emasoft/rechecker-plugin"
+      },
+      "description": "Automatically reviews and fixes Claude's code changes using a separate Claude instance in a git worktree after commits. Two-phase pipeline: code correctness (Phase 1) then functionality verification (Phase 2).",
+      "version": "2.0.8",
+      "author": {
+        "name": "Emasoft",
+        "email": "713559+Emasoft@users.noreply.github.com"
+      },
+      "repository": "https://github.com/Emasoft/rechecker-plugin",
+      "license": "MIT",
+      "keywords": [
+        "code-review",
+        "autofix",
+        "worktree",
+        "linting",
+        "security",
+        "hooks",
+        "two-phase",
+        "opus",
+        "scan",
+        "rechecker"
+      ],
+      "category": "developer-tools"
     }
   ]
 }
