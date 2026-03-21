@@ -414,7 +414,7 @@
         "repo": "Emasoft/rechecker-plugin"
       },
       "description": "Automatically reviews and fixes Claude's code changes using a separate Claude instance in a git worktree after commits. Two-phase pipeline: code correctness (Phase 1) then functionality verification (Phase 2).",
-      "version": "2.0.44",
+      "version": "2.0.45",
       "author": {
         "name": "Emasoft",
         "email": "713559+Emasoft@users.noreply.github.com"
