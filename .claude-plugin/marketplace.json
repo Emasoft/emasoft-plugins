@@ -359,7 +359,7 @@
         "repo": "Emasoft/token-reporter-plugin"
       },
       "description": "Per-operation token usage reporter for Claude Code. Shows token counts, cost estimates, tool attribution, cache efficiency, duration, bash commands, web fetches, and file activity when agents complete. Only outputs in debug mode (claude --debug).",
-      "version": "1.2.3",
+      "version": "1.3.0",
       "author": {
         "name": "Emasoft",
         "email": "713559+Emasoft@users.noreply.github.com"
