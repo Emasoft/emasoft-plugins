@@ -386,7 +386,7 @@
         "repo": "Emasoft/llm-externalizer-plugin"
       },
       "description": "MCP server that offloads bounded LLM tasks from Claude Code to cheaper local (LM Studio, Ollama, vLLM, llama.cpp) or remote (OpenRouter) models. Profile-based configuration with ensemble mode, auto-batching, and secret scanning.",
-      "version": "3.9.63",
+      "version": "3.9.64",
       "author": {
         "name": "Emasoft",
         "email": "713559+Emasoft@users.noreply.github.com"
