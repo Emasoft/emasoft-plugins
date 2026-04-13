@@ -442,7 +442,7 @@
         "repo": "Emasoft/scenarios-autorunner"
       },
       "description": "Universal UI scenario testing harness \u2014 author, run, analyze, and improve browser-driven test scenarios end-to-end. 5 skills (run/create/edit/improve/implement-proposals), 2 subagents with project-scoped memory, Stop+StopFailure hooks for unattended overnight batch runs with auto-continue and rate-limit recovery.",
-      "version": "0.1.0",
+      "version": "0.1.1",
       "author": {
         "name": "Emasoft",
         "email": "713559+Emasoft@users.noreply.github.com"
