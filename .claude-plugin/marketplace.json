@@ -41,7 +41,7 @@
         "repo": "Emasoft/claude-plugins-validation"
       },
       "description": "Comprehensive validation suite for Claude Code plugins, marketplaces, hooks, skills, and MCP servers. Includes 17 Python validators, 2 expert agents, and 190+ validation rules.",
-      "version": "2.12.24",
+      "version": "2.12.25",
       "author": {
         "name": "Emasoft",
         "email": "713559+Emasoft@users.noreply.github.com"
@@ -441,7 +441,7 @@
         "source": "github",
         "repo": "Emasoft/scenarios-autorunner"
       },
-      "description": "Universal UI scenario testing harness — author, run, analyze, and improve browser-driven test scenarios end-to-end. 5 skills (run/create/edit/improve/implement-proposals), 2 subagents with project-scoped memory, Stop+StopFailure hooks for unattended overnight batch runs with auto-continue and rate-limit recovery.",
+      "description": "Universal UI scenario testing harness \u2014 author, run, analyze, and improve browser-driven test scenarios end-to-end. 5 skills (run/create/edit/improve/implement-proposals), 2 subagents with project-scoped memory, Stop+StopFailure hooks for unattended overnight batch runs with auto-continue and rate-limit recovery.",
       "version": "0.1.0",
       "author": {
         "name": "Emasoft",
