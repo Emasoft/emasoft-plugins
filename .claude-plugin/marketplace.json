@@ -434,35 +434,6 @@
         "rechecker"
       ],
       "category": "developer-tools"
-    },
-    {
-      "name": "scenarios-autorunner",
-      "source": {
-        "source": "github",
-        "repo": "Emasoft/scenarios-autorunner"
-      },
-      "description": "Universal UI scenario testing harness \u2014 author, run, analyze, and improve browser-driven test scenarios end-to-end. 5 skills (run/create/edit/improve/implement-proposals), 2 subagents with project-scoped memory, Stop+StopFailure hooks for unattended overnight batch runs with auto-continue and rate-limit recovery.",
-      "version": "0.1.4",
-      "author": {
-        "name": "Emasoft",
-        "email": "713559+Emasoft@users.noreply.github.com"
-      },
-      "repository": "https://github.com/Emasoft/scenarios-autorunner",
-      "license": "MIT",
-      "keywords": [
-        "testing",
-        "scenarios",
-        "ui-tests",
-        "browser-automation",
-        "chrome-devtools",
-        "unattended",
-        "batch",
-        "overnight",
-        "hooks",
-        "subagents",
-        "worktree"
-      ],
-      "category": "developer-tools"
     }
   ]
 }
