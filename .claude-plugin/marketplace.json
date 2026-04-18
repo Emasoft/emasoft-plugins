@@ -41,7 +41,7 @@
         "repo": "Emasoft/claude-plugins-validation"
       },
       "description": "Comprehensive validation suite for Claude Code plugins, marketplaces, hooks, skills, and MCP servers. Includes 17 Python validators, 2 expert agents, and 190+ validation rules.",
-      "version": "2.22.10",
+      "version": "2.22.11",
       "author": {
         "name": "Emasoft",
         "email": "713559+Emasoft@users.noreply.github.com"
