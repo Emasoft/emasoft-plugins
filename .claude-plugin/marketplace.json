@@ -434,6 +434,36 @@
         "rechecker"
       ],
       "category": "developer-tools"
+    },
+    {
+      "name": "claude-menu-system",
+      "source": {
+        "source": "github",
+        "repo": "Emasoft/claude-menu-system"
+      },
+      "description": "Universal terminal-menu system for Claude Code plugins. A haiku-fork skill renders a JSON menu spec to a tempfile; the bundled Stop hook emits it as systemMessage at main-session turn end — the menu appears in the user terminal exactly when they can type a reply, without burning opus tokens on copy-into-prose. 8 render modes, 5 box styles with ASCII auto-downgrade, semantic ANSI palette, 10K hook-cap with tiered truncation.",
+      "version": "0.1.0",
+      "author": {
+        "name": "Emasoft",
+        "email": "713559+Emasoft@users.noreply.github.com"
+      },
+      "repository": "https://github.com/Emasoft/claude-menu-system",
+      "license": "MIT",
+      "keywords": [
+        "menu",
+        "tui",
+        "rendering",
+        "ansi",
+        "hooks",
+        "universal",
+        "skill",
+        "claude-code",
+        "plugin-utility",
+        "system-message",
+        "stop-hook",
+        "haiku"
+      ],
+      "category": "developer-tools"
     }
   ]
 }
