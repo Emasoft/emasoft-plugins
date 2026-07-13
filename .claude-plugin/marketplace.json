@@ -442,7 +442,7 @@
         "repo": "Emasoft/claude-menu-system"
       },
       "description": "Universal terminal-menu system for Claude Code plugins. Any agent invokes scripts/menu_write.py via Bash (~25ms) to render a JSON menu spec to a tempfile; a bundled Stop hook emits it as systemMessage at main-session turn end \u2014 the menu appears in the user terminal exactly when they can type a reply. No subagent fork, no extended-thinking overhead, no token cost to the orchestrator.",
-      "version": "0.2.0",
+      "version": "0.2.1",
       "author": {
         "name": "Emasoft",
         "email": "713559+Emasoft@users.noreply.github.com"
