@@ -41,7 +41,7 @@
         "repo": "Emasoft/claude-plugins-validation"
       },
       "description": "Comprehensive validation suite for Claude Code plugins, marketplaces, hooks, skills, and MCP servers. Includes 17 Python validators, 2 expert agents, and 190+ validation rules.",
-      "version": "5.3.0",
+      "version": "5.4.0",
       "author": {
         "name": "Emasoft",
         "email": "713559+Emasoft@users.noreply.github.com"
@@ -293,7 +293,7 @@
         "source": "github",
         "repo": "Emasoft/claude-menu-system"
       },
-      "description": "Universal terminal-menu system for Claude Code plugins. Any agent invokes scripts/menu_write.py via Bash (~25ms) to render a JSON menu spec to a tempfile; a bundled Stop hook emits it as systemMessage at main-session turn end — the menu appears in the user terminal exactly when they can type a reply. No subagent fork, no extended-thinking overhead, no token cost to the orchestrator.",
+      "description": "Universal terminal-menu system for Claude Code plugins. Any agent invokes scripts/menu_write.py via Bash (~25ms) to render a JSON menu spec to a tempfile; a bundled Stop hook emits it as systemMessage at main-session turn end \u2014 the menu appears in the user terminal exactly when they can type a reply. No subagent fork, no extended-thinking overhead, no token cost to the orchestrator.",
       "version": "0.2.2",
       "author": {
         "name": "Emasoft",
