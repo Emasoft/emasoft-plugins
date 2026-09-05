@@ -17,6 +17,7 @@ A collection of high-quality Claude Code plugins for multi-agent development wor
 | emasoft-programmer-agent | 1.0.1 | Agent | Code implementation, testing, and debugging (Python, JS/TS, Rust, Go, .NET, C/C++, Swift) |
 | [token-reporter](https://github.com/Emasoft/token-reporter-plugin) | 1.2.2 | Developer Tools | Per-operation token usage reporter with cost estimates, cache efficiency, and tool attribution |
 | [llm-externalizer](https://github.com/Emasoft/llm-externalizer-plugin) | 3.2.1 | Developer Tools | MCP server that offloads LLM tasks to cheaper local or remote models with ensemble mode |
+| [emasoft-agents-discipline](https://github.com/Emasoft/emasoft-agents-discipline) | 1.0.0 | Workflow | Delegation and completion discipline: a unit-count gate with a delegation ledger and one subagent per unit, plus acceptance gates with an approval-bound checker and an optional Stop hook |
 
 *Last updated: 2026-03-15*
 
@@ -418,6 +419,26 @@ claude plugin install llm-externalizer@emasoft-plugins
 - 2 auto-discovered skills for tool usage and configuration
 
 **Requirements:** Node.js >= 18, npm. For remote: `OPENROUTER_API_KEY` env var.
+
+---
+
+### [Agents Discipline](https://github.com/Emasoft/emasoft-agents-discipline)
+
+One skill, `agents-discipline`, that closes the two failure modes of long-horizon agent work: the delegation half makes the leaves exist (a unit-count gate, a `DELEGATION.md` ledger, one fresh subagent per unit, coordinator re-verification with signed receipts), and the completion half makes every leaf finish (acceptance gates written before execution, an approval-bound checker, Depth Tree decomposition, dispatch waves, an optional Stop hook).
+
+**Install:**
+```bash
+claude plugin install emasoft-agents-discipline@emasoft-plugins
+```
+
+**Features:**
+- Triggers: `/agents-discipline`, `$agents-discipline`, "delegate", "fan out", "tree N", "gates"
+- Delegation ledger checker that re-runs each verified row's acceptance command and signs the ledger
+- Gate ledgers (`GATES.md`, `gates/*.md`) with a checker that executes only approved `CHECK:` commands
+- Optional Claude Code Stop hook that blocks the turn while gates or dispatch waves are unmet
+- Zero-dependency Node scripts (Node 16+) with 8 regression suites
+
+**Requirements:** Node.js >= 16.
 
 ---
 

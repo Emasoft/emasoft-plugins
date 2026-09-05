@@ -316,6 +316,34 @@
         "haiku"
       ],
       "category": "developer-tools"
+    },
+    {
+      "name": "emasoft-agents-discipline",
+      "source": {
+        "source": "github",
+        "repo": "Emasoft/emasoft-agents-discipline"
+      },
+      "description": "Delegation and completion discipline for substantial autonomous agent work: a unit-count gate with a DELEGATION.md ledger and one fresh subagent per unit, plus acceptance gates with an approval-bound checker, Depth Tree decomposition, and an optional Stop hook so no leaf lands half-done.",
+      "version": "1.0.0",
+      "author": {
+        "name": "Emasoft",
+        "email": "713559+Emasoft@users.noreply.github.com"
+      },
+      "repository": "https://github.com/Emasoft/emasoft-agents-discipline",
+      "license": "MIT",
+      "keywords": [
+        "delegation",
+        "completion",
+        "gates",
+        "ledger",
+        "subagents",
+        "orchestration",
+        "verification",
+        "discipline",
+        "claude-code",
+        "skills"
+      ],
+      "category": "workflow"
     }
   ]
 }
