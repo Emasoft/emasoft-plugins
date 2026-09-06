@@ -138,17 +138,30 @@ jobs:
             # empty string — which the `-n "$VERSION"` test below then treats as
             # "nothing to update". An expired token would quietly stop the whole
             # marketplace from updating while the job stayed green.
-            # gh's stderr is KEPT: it names the actual cause (404, renamed repo,
-            # rate limit, expired PAT), which the old all-suppressed form
-            # collapsed into an indistinguishable empty string. The two
-            # downstream stages stay quiet because once gh emits nothing they
-            # fail too, and their cascade (a base64 error plus a JSON traceback)
-            # is noise about the first failure, not new information — printing it
-            # every sweep is what teaches a reader to skip this step's output.
-            # The `|| echo ""` keeps one unreachable plugin from aborting the run.
-            VERSION=$(gh api "repos/$owner_repo/contents/.claude-plugin/plugin.json" \
-              --jq '.content' | base64 -d 2>/dev/null | \
-              python3 -c "import sys,json; print(json.load(sys.stdin).get('version',''))" 2>/dev/null || echo "")
+            # Split into FETCH then PARSE so each failure reports its own cause.
+            # As one pipeline they were indistinguishable: silencing everything
+            # collapsed a 404 and a malformed manifest into the same empty
+            # string, and silencing nothing printed a base64 error plus a JSON
+            # traceback for every unreachable repo — cascade noise about a
+            # failure gh had already reported.
+            #
+            # FETCH: gh's stderr stays visible; it names the cause (404, renamed
+            # repo, rate limit, expired PAT) and exits non-zero, verified against
+            # the real CLI. base64 is silenced because on a failed fetch it only
+            # complains about the empty input.
+            RAW=$(gh api "repos/$owner_repo/contents/.claude-plugin/plugin.json" \
+              --jq '.content' | base64 -d 2>/dev/null || echo "")
+
+            if [ -n "$RAW" ]; then
+              # PARSE: reached only when the fetch SUCCEEDED, so a failure here
+              # means that repo's plugin.json is malformed. That is a real
+              # finding about someone's manifest and python's stderr is its only
+              # report — it must not be silenced as if it were cascade noise.
+              VERSION=$(printf '%s' "$RAW" | \
+                python3 -c "import sys,json; print(json.load(sys.stdin).get('version',''))" || echo "")
+            else
+              VERSION=""
+            fi
 
             if [ -n "$VERSION" ]; then
               echo "  $name: found version $VERSION"
