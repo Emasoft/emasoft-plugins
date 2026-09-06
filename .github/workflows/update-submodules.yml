@@ -217,7 +217,7 @@ jobs:
               # failing hard there would turn the most common transient case into
               # a red job.
               if git rebase --abort 2>/dev/null; then
-                echo "::error::rebase conflict against origin/main — resolve by hand"
+                echo "::error::rebase stopped against origin/main — resolve by hand"
                 exit 1
               fi
               echo "pull failed with no rebase in progress (transient) — retrying"
