@@ -145,6 +145,14 @@ jobs:
             fi
           done
 
+      - name: Regenerate README plugin table
+        # marketplace.json is the single source of truth for BOTH the version
+        # cells and which plugins are listed. This step runs BEFORE the change
+        # check so a README-only drift still produces a commit: without it the
+        # table was never machine-maintained and had drifted five versions and
+        # six phantom rows out of date.
+        run: python3 scripts/render_readme_table.py
+
       - name: Check for changes
         id: changes
         run: |
@@ -160,7 +168,9 @@ jobs:
       - name: Commit and push
         if: steps.changes.outputs.has_changes == 'true'
         run: |
-          git add .claude-plugin/marketplace.json
+          # README.md is regenerated from marketplace.json by the step above;
+          # staging only the manifest is what left the table unmaintained.
+          git add .claude-plugin/marketplace.json README.md
 
           # Build commit message
           PLUGIN="${{ github.event.client_payload.plugin || inputs.plugin || 'all' }}"
