@@ -72,10 +72,12 @@ jobs:
           GH_TOKEN: ${{ secrets.MARKETPLACE_PAT }}
           # Untrusted on repository_dispatch — never interpolated into script text.
           PLUGIN: ${{ github.event.client_payload.plugin || inputs.plugin }}
+          # Declared here rather than exported in the body: `export` is
+          # process-local, so it would reach only this step's own heredocs and
+          # silently not the next step's. Step-level env: makes the scope
+          # explicit and correct for both the shell and os.environ.
+          MARKETPLACE_JSON: .claude-plugin/marketplace.json
         run: |
-          # Exported so the python blocks below can read it from os.environ
-          # instead of having it spliced into their source.
-          export MARKETPLACE_JSON=".claude-plugin/marketplace.json"
 
           if [ -z "$PLUGIN" ]; then
             echo "No specific plugin specified, updating all..."
@@ -201,7 +203,11 @@ jobs:
               if p.get('name') == plugin:
                   print(p.get('version', 'unknown'))
                   break
-          " 2>/dev/null || echo "unknown")
+          " || echo "unknown")
+            # stderr is deliberately NOT sent to /dev/null: a failure here is
+            # non-fatal (a commit message must not break the push) but it used to
+            # be invisible, producing a plausible-looking "update X to unknown"
+            # with no trace of why. Visible in the log, still non-fatal.
             git commit -m "chore: update $PLUGIN to $NEW_VERSION"
           else
             git commit -m "chore: sync marketplace.json plugin versions"
