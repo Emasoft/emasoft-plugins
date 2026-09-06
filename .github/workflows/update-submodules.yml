@@ -41,12 +41,20 @@ jobs:
           token: ${{ secrets.MARKETPLACE_PAT }}
 
       - name: Show trigger info
+        # client_payload.* is attacker-controlled on repository_dispatch, so it
+        # reaches the shell as an environment variable rather than as ${{ }}
+        # interpolation, which would splice it into the script text itself.
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          PAYLOAD_PLUGIN: ${{ github.event.client_payload.plugin }}
+          PAYLOAD_REF: ${{ github.event.client_payload.ref }}
+          PAYLOAD_ACTOR: ${{ github.event.client_payload.triggered_by }}
         run: |
-          echo "Triggered by: ${{ github.event_name }}"
-          if [ "${{ github.event_name }}" = "repository_dispatch" ]; then
-            echo "Plugin: ${{ github.event.client_payload.plugin }}"
-            echo "Ref: ${{ github.event.client_payload.ref }}"
-            echo "Actor: ${{ github.event.client_payload.triggered_by }}"
+          echo "Triggered by: $EVENT_NAME"
+          if [ "$EVENT_NAME" = "repository_dispatch" ]; then
+            echo "Plugin: $PAYLOAD_PLUGIN"
+            echo "Ref: $PAYLOAD_REF"
+            echo "Actor: $PAYLOAD_ACTOR"
           fi
 
       - name: Configure git
@@ -62,9 +70,12 @@ jobs:
       - name: Fetch and update plugin version
         env:
           GH_TOKEN: ${{ secrets.MARKETPLACE_PAT }}
+          # Untrusted on repository_dispatch — never interpolated into script text.
+          PLUGIN: ${{ github.event.client_payload.plugin || inputs.plugin }}
         run: |
-          PLUGIN="${{ github.event.client_payload.plugin || inputs.plugin }}"
-          MARKETPLACE_JSON=".claude-plugin/marketplace.json"
+          # Exported so the python blocks below can read it from os.environ
+          # instead of having it spliced into their source.
+          export MARKETPLACE_JSON=".claude-plugin/marketplace.json"
 
           if [ -z "$PLUGIN" ]; then
             echo "No specific plugin specified, updating all..."
@@ -87,20 +98,25 @@ jobs:
           ")
           else
             # Single plugin - extract repo from marketplace.json
+            # PLUGIN and MARKETPLACE_JSON are read from the ENVIRONMENT, never
+            # spliced into this source. Interpolating them left a single quote in
+            # a dispatch payload able to close the string and execute arbitrary
+            # Python with contents:write and the MARKETPLACE_PAT in scope.
             REPO_INFO=$(python3 -c "
-          import json
-          with open('$MARKETPLACE_JSON') as f:
+          import json, os
+          plugin = os.environ['PLUGIN']
+          with open(os.environ['MARKETPLACE_JSON']) as f:
               data = json.load(f)
           for p in data.get('plugins', []):
-              if p.get('name') == '$PLUGIN':
+              if p.get('name') == plugin:
                   source = p.get('source', {})
                   if isinstance(source, dict) and source.get('source') == 'github':
                       repo_val = source.get('repo', '')
-                      print(f'$PLUGIN|{repo_val}')
+                      print(f'{plugin}|{repo_val}')
                   elif isinstance(source, dict) and source.get('source') == 'url':
                       repo = source.get('url', '').rstrip('/').removesuffix('.git')
                       owner_repo = '/'.join(repo.split('/')[-2:])
-                      print(f'$PLUGIN|{owner_repo}')
+                      print(f'{plugin}|{owner_repo}')
                   break
           ")
             PLUGINS="$REPO_INFO"
@@ -167,21 +183,22 @@ jobs:
 
       - name: Commit and push
         if: steps.changes.outputs.has_changes == 'true'
+        env:
+          # Untrusted on repository_dispatch — never interpolated into script text.
+          PLUGIN: ${{ github.event.client_payload.plugin || inputs.plugin || 'all' }}
         run: |
           # README.md is regenerated from marketplace.json by the step above;
           # staging only the manifest is what left the table unmaintained.
           git add .claude-plugin/marketplace.json README.md
 
-          # Build commit message
-          PLUGIN="${{ github.event.client_payload.plugin || inputs.plugin || 'all' }}"
-
           if [ "$PLUGIN" != "all" ]; then
             NEW_VERSION=$(python3 -c "
-          import json
+          import json, os
+          plugin = os.environ['PLUGIN']
           with open('.claude-plugin/marketplace.json') as f:
               data = json.load(f)
           for p in data.get('plugins', []):
-              if p.get('name') == '$PLUGIN':
+              if p.get('name') == plugin:
                   print(p.get('version', 'unknown'))
                   break
           " 2>/dev/null || echo "unknown")
@@ -238,12 +255,16 @@ jobs:
           fi
 
       - name: Summary
+        env:
+          # Untrusted on repository_dispatch — never interpolated into script text.
+          EVENT_NAME: ${{ github.event_name }}
+          PAYLOAD_PLUGIN: ${{ github.event.client_payload.plugin }}
         run: |
           echo "## Version Update Summary" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Trigger:** ${{ github.event_name }}" >> $GITHUB_STEP_SUMMARY
-          if [ "${{ github.event_name }}" = "repository_dispatch" ]; then
-            echo "**Plugin:** ${{ github.event.client_payload.plugin }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Trigger:** $EVENT_NAME" >> $GITHUB_STEP_SUMMARY
+          if [ "$EVENT_NAME" = "repository_dispatch" ]; then
+            echo "**Plugin:** $PAYLOAD_PLUGIN" >> $GITHUB_STEP_SUMMARY
           fi
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### marketplace.json" >> $GITHUB_STEP_SUMMARY
