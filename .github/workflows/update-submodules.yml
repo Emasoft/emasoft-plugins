@@ -138,9 +138,17 @@ jobs:
             # empty string — which the `-n "$VERSION"` test below then treats as
             # "nothing to update". An expired token would quietly stop the whole
             # marketplace from updating while the job stayed green.
+            # gh's stderr is KEPT: it names the actual cause (404, renamed repo,
+            # rate limit, expired PAT), which the old all-suppressed form
+            # collapsed into an indistinguishable empty string. The two
+            # downstream stages stay quiet because once gh emits nothing they
+            # fail too, and their cascade (a base64 error plus a JSON traceback)
+            # is noise about the first failure, not new information — printing it
+            # every sweep is what teaches a reader to skip this step's output.
+            # The `|| echo ""` keeps one unreachable plugin from aborting the run.
             VERSION=$(gh api "repos/$owner_repo/contents/.claude-plugin/plugin.json" \
-              --jq '.content' | base64 -d | \
-              python3 -c "import sys,json; print(json.load(sys.stdin).get('version',''))" || echo "")
+              --jq '.content' | base64 -d 2>/dev/null | \
+              python3 -c "import sys,json; print(json.load(sys.stdin).get('version',''))" 2>/dev/null || echo "")
 
             if [ -n "$VERSION" ]; then
               echo "  $name: found version $VERSION"
