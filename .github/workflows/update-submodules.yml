@@ -203,7 +203,17 @@ jobs:
               break
             fi
             echo "Push failed (attempt $attempt), pulling and retrying..."
-            git pull --rebase origin main
+            # Steps run under `bash -eo pipefail`, so a CONFLICTING rebase would
+            # otherwise abort the step mid-rebase, leaving the checkout in a
+            # rebase-in-progress state and skipping the re-render below. Handle
+            # it explicitly: unwind cleanly and fail loudly. A conflict here means
+            # a concurrent writer rewrote the same marker block, which a human
+            # should look at rather than a retry loop paper over.
+            if ! git pull --rebase origin main; then
+              git rebase --abort || true
+              echo "::error::rebase conflict against origin/main — resolve by hand"
+              exit 1
+            fi
             python3 scripts/render_readme_table.py
             if ! git diff --quiet -- README.md; then
               git add README.md
