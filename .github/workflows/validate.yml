@@ -88,6 +88,12 @@ jobs:
           print(f'=== All {len(plugins)} plugin entries validated ===')
           "
 
+      - name: README table matches marketplace.json
+        # Makes --check a real gate rather than an unused flag: if anyone hand-edits
+        # the generated block, or a manifest change lands without a regenerate, CI
+        # fails here instead of the drift going unnoticed for months.
+        run: python3 scripts/render_readme_table.py --check
+
       - name: Lint marketplace scripts
         run: |
           echo "=== Linting marketplace scripts ==="

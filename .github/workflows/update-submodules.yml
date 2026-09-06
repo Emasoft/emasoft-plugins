@@ -190,15 +190,33 @@ jobs:
             git commit -m "chore: sync marketplace.json plugin versions"
           fi
 
-          # Retry push with pull-rebase in case of concurrent updates
+          # Retry push with pull-rebase in case of concurrent updates.
+          # After each rebase the README must be re-rendered and amended: this
+          # commit rewrites the WHOLE marker block, so replaying it onto a peer's
+          # newer marketplace.json would otherwise reinstate the pre-rebase table
+          # and silently revert their row.
+          pushed=false
           for attempt in 1 2 3; do
             if git push; then
               echo "Push succeeded on attempt $attempt"
+              pushed=true
               break
             fi
             echo "Push failed (attempt $attempt), pulling and retrying..."
             git pull --rebase origin main
+            python3 scripts/render_readme_table.py
+            if ! git diff --quiet -- README.md; then
+              git add README.md
+              git commit --amend --no-edit
+            fi
           done
+
+          # A loop that exhausts its retries must FAIL the job. Falling through
+          # silently reported success on a push that never landed.
+          if [ "$pushed" != "true" ]; then
+            echo "::error::push failed after 3 attempts"
+            exit 1
+          fi
 
       - name: Summary
         run: |
