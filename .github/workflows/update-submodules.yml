@@ -83,8 +83,8 @@ jobs:
             echo "No specific plugin specified, updating all..."
             # Read all plugin names from marketplace.json
             PLUGINS=$(python3 -c "
-          import json
-          with open('$MARKETPLACE_JSON') as f:
+          import json, os
+          with open(os.environ['MARKETPLACE_JSON']) as f:
               data = json.load(f)
           for p in data.get('plugins', []):
               name = p.get('name', '')
@@ -132,29 +132,44 @@ jobs:
             echo "Fetching version for $name from $owner_repo..."
 
             # Fetch plugin.json from the plugin repo via GitHub API
+            # stderr is NOT suppressed here. This chain decides what gets written
+            # into marketplace.json, and swallowing it collapsed a 404, a rate
+            # limit, an expired PAT and a malformed plugin.json into the same
+            # empty string — which the `-n "$VERSION"` test below then treats as
+            # "nothing to update". An expired token would quietly stop the whole
+            # marketplace from updating while the job stayed green.
             VERSION=$(gh api "repos/$owner_repo/contents/.claude-plugin/plugin.json" \
-              --jq '.content' 2>/dev/null | base64 -d 2>/dev/null | \
-              python3 -c "import sys,json; print(json.load(sys.stdin).get('version',''))" 2>/dev/null || echo "")
+              --jq '.content' | base64 -d | \
+              python3 -c "import sys,json; print(json.load(sys.stdin).get('version',''))" || echo "")
 
             if [ -n "$VERSION" ]; then
               echo "  $name: found version $VERSION"
-              # Update marketplace.json
-              python3 -c "
-          import json
-          with open('$MARKETPLACE_JSON') as f:
+              # Update marketplace.json.
+              # PLUGIN_NAME and PLUGIN_VERSION are passed through the ENVIRONMENT,
+              # not spliced into this source. VERSION is parsed out of a
+              # plugin.json fetched over the network from another repository, so
+              # interpolating it let anyone who controls a listed plugin repo run
+              # arbitrary Python here — in a job holding MARKETPLACE_PAT, and
+              # without needing that PAT to start. This is the same injection the
+              # client_payload commit fixed; sweeping for that one missed this
+              # site because the untrusted value arrives by a different route.
+              PLUGIN_NAME="$name" PLUGIN_VERSION="$VERSION" python3 -c "
+          import json, os
+          path = os.environ['MARKETPLACE_JSON']
+          name = os.environ['PLUGIN_NAME']
+          version = os.environ['PLUGIN_VERSION']
+          with open(path) as f:
               data = json.load(f)
           for p in data.get('plugins', []):
-              if p.get('name') == '$name':
+              if p.get('name') == name:
                   old = p.get('version', 'unknown')
-                  if old != '$VERSION':
-                      p['version'] = '$VERSION'
-                      pname = p.get('name', '?')
-                      print(f'  Updated {pname}: {old} -> $VERSION')
+                  if old != version:
+                      p['version'] = version
+                      print(f'  Updated {name}: {old} -> {version}')
                   else:
-                      pname = p.get('name', '?')
-                      print(f'  {pname}: already at $VERSION')
+                      print(f'  {name}: already at {version}')
                   break
-          with open('$MARKETPLACE_JSON', 'w') as f:
+          with open(path, 'w') as f:
               json.dump(data, f, indent=2)
               f.write('\n')
           "
