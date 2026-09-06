@@ -41,12 +41,20 @@ jobs:
           token: ${{ secrets.MARKETPLACE_PAT }}
 
       - name: Show trigger info
+        # client_payload.* is attacker-controlled on repository_dispatch, so it
+        # reaches the shell as an environment variable rather than as ${{ }}
+        # interpolation, which would splice it into the script text itself.
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          PAYLOAD_PLUGIN: ${{ github.event.client_payload.plugin }}
+          PAYLOAD_REF: ${{ github.event.client_payload.ref }}
+          PAYLOAD_ACTOR: ${{ github.event.client_payload.triggered_by }}
         run: |
-          echo "Triggered by: ${{ github.event_name }}"
-          if [ "${{ github.event_name }}" = "repository_dispatch" ]; then
-            echo "Plugin: ${{ github.event.client_payload.plugin }}"
-            echo "Ref: ${{ github.event.client_payload.ref }}"
-            echo "Actor: ${{ github.event.client_payload.triggered_by }}"
+          echo "Triggered by: $EVENT_NAME"
+          if [ "$EVENT_NAME" = "repository_dispatch" ]; then
+            echo "Plugin: $PAYLOAD_PLUGIN"
+            echo "Ref: $PAYLOAD_REF"
+            echo "Actor: $PAYLOAD_ACTOR"
           fi
 
       - name: Configure git
@@ -62,16 +70,21 @@ jobs:
       - name: Fetch and update plugin version
         env:
           GH_TOKEN: ${{ secrets.MARKETPLACE_PAT }}
+          # Untrusted on repository_dispatch — never interpolated into script text.
+          PLUGIN: ${{ github.event.client_payload.plugin || inputs.plugin }}
+          # Declared here rather than exported in the body: `export` is
+          # process-local, so it would reach only this step's own heredocs and
+          # silently not the next step's. Step-level env: makes the scope
+          # explicit and correct for both the shell and os.environ.
+          MARKETPLACE_JSON: .claude-plugin/marketplace.json
         run: |
-          PLUGIN="${{ github.event.client_payload.plugin || inputs.plugin }}"
-          MARKETPLACE_JSON=".claude-plugin/marketplace.json"
 
           if [ -z "$PLUGIN" ]; then
             echo "No specific plugin specified, updating all..."
             # Read all plugin names from marketplace.json
             PLUGINS=$(python3 -c "
-          import json
-          with open('$MARKETPLACE_JSON') as f:
+          import json, os
+          with open(os.environ['MARKETPLACE_JSON']) as f:
               data = json.load(f)
           for p in data.get('plugins', []):
               name = p.get('name', '')
@@ -87,20 +100,25 @@ jobs:
           ")
           else
             # Single plugin - extract repo from marketplace.json
+            # PLUGIN and MARKETPLACE_JSON are read from the ENVIRONMENT, never
+            # spliced into this source. Interpolating them left a single quote in
+            # a dispatch payload able to close the string and execute arbitrary
+            # Python with contents:write and the MARKETPLACE_PAT in scope.
             REPO_INFO=$(python3 -c "
-          import json
-          with open('$MARKETPLACE_JSON') as f:
+          import json, os
+          plugin = os.environ['PLUGIN']
+          with open(os.environ['MARKETPLACE_JSON']) as f:
               data = json.load(f)
           for p in data.get('plugins', []):
-              if p.get('name') == '$PLUGIN':
+              if p.get('name') == plugin:
                   source = p.get('source', {})
                   if isinstance(source, dict) and source.get('source') == 'github':
                       repo_val = source.get('repo', '')
-                      print(f'$PLUGIN|{repo_val}')
+                      print(f'{plugin}|{repo_val}')
                   elif isinstance(source, dict) and source.get('source') == 'url':
                       repo = source.get('url', '').rstrip('/').removesuffix('.git')
                       owner_repo = '/'.join(repo.split('/')[-2:])
-                      print(f'$PLUGIN|{owner_repo}')
+                      print(f'{plugin}|{owner_repo}')
                   break
           ")
             PLUGINS="$REPO_INFO"
@@ -114,29 +132,65 @@ jobs:
             echo "Fetching version for $name from $owner_repo..."
 
             # Fetch plugin.json from the plugin repo via GitHub API
-            VERSION=$(gh api "repos/$owner_repo/contents/.claude-plugin/plugin.json" \
-              --jq '.content' 2>/dev/null | base64 -d 2>/dev/null | \
-              python3 -c "import sys,json; print(json.load(sys.stdin).get('version',''))" 2>/dev/null || echo "")
+            # stderr is NOT suppressed here. This chain decides what gets written
+            # into marketplace.json, and swallowing it collapsed a 404, a rate
+            # limit, an expired PAT and a malformed plugin.json into the same
+            # empty string — which the `-n "$VERSION"` test below then treats as
+            # "nothing to update". An expired token would quietly stop the whole
+            # marketplace from updating while the job stayed green.
+            # Split into FETCH then PARSE so each failure reports its own cause.
+            # As one pipeline they were indistinguishable: silencing everything
+            # collapsed a 404 and a malformed manifest into the same empty
+            # string, and silencing nothing printed a base64 error plus a JSON
+            # traceback for every unreachable repo — cascade noise about a
+            # failure gh had already reported.
+            #
+            # FETCH: gh's stderr stays visible; it names the cause (404, renamed
+            # repo, rate limit, expired PAT) and exits non-zero, verified against
+            # the real CLI. base64 is silenced because on a failed fetch it only
+            # complains about the empty input.
+            RAW=$(gh api "repos/$owner_repo/contents/.claude-plugin/plugin.json" \
+              --jq '.content' | base64 -d 2>/dev/null || echo "")
+
+            if [ -n "$RAW" ]; then
+              # PARSE: reached only when the fetch SUCCEEDED, so a failure here
+              # means that repo's plugin.json is malformed. That is a real
+              # finding about someone's manifest and python's stderr is its only
+              # report — it must not be silenced as if it were cascade noise.
+              VERSION=$(printf '%s' "$RAW" | \
+                python3 -c "import sys,json; print(json.load(sys.stdin).get('version',''))" || echo "")
+            else
+              VERSION=""
+            fi
 
             if [ -n "$VERSION" ]; then
               echo "  $name: found version $VERSION"
-              # Update marketplace.json
-              python3 -c "
-          import json
-          with open('$MARKETPLACE_JSON') as f:
+              # Update marketplace.json.
+              # PLUGIN_NAME and PLUGIN_VERSION are passed through the ENVIRONMENT,
+              # not spliced into this source. VERSION is parsed out of a
+              # plugin.json fetched over the network from another repository, so
+              # interpolating it let anyone who controls a listed plugin repo run
+              # arbitrary Python here — in a job holding MARKETPLACE_PAT, and
+              # without needing that PAT to start. This is the same injection the
+              # client_payload commit fixed; sweeping for that one missed this
+              # site because the untrusted value arrives by a different route.
+              PLUGIN_NAME="$name" PLUGIN_VERSION="$VERSION" python3 -c "
+          import json, os
+          path = os.environ['MARKETPLACE_JSON']
+          name = os.environ['PLUGIN_NAME']
+          version = os.environ['PLUGIN_VERSION']
+          with open(path) as f:
               data = json.load(f)
           for p in data.get('plugins', []):
-              if p.get('name') == '$name':
+              if p.get('name') == name:
                   old = p.get('version', 'unknown')
-                  if old != '$VERSION':
-                      p['version'] = '$VERSION'
-                      pname = p.get('name', '?')
-                      print(f'  Updated {pname}: {old} -> $VERSION')
+                  if old != version:
+                      p['version'] = version
+                      print(f'  Updated {name}: {old} -> {version}')
                   else:
-                      pname = p.get('name', '?')
-                      print(f'  {pname}: already at $VERSION')
+                      print(f'  {name}: already at {version}')
                   break
-          with open('$MARKETPLACE_JSON', 'w') as f:
+          with open(path, 'w') as f:
               json.dump(data, f, indent=2)
               f.write('\n')
           "
@@ -167,24 +221,29 @@ jobs:
 
       - name: Commit and push
         if: steps.changes.outputs.has_changes == 'true'
+        env:
+          # Untrusted on repository_dispatch — never interpolated into script text.
+          PLUGIN: ${{ github.event.client_payload.plugin || inputs.plugin || 'all' }}
         run: |
           # README.md is regenerated from marketplace.json by the step above;
           # staging only the manifest is what left the table unmaintained.
           git add .claude-plugin/marketplace.json README.md
 
-          # Build commit message
-          PLUGIN="${{ github.event.client_payload.plugin || inputs.plugin || 'all' }}"
-
           if [ "$PLUGIN" != "all" ]; then
             NEW_VERSION=$(python3 -c "
-          import json
+          import json, os
+          plugin = os.environ['PLUGIN']
           with open('.claude-plugin/marketplace.json') as f:
               data = json.load(f)
           for p in data.get('plugins', []):
-              if p.get('name') == '$PLUGIN':
+              if p.get('name') == plugin:
                   print(p.get('version', 'unknown'))
                   break
-          " 2>/dev/null || echo "unknown")
+          " || echo "unknown")
+            # stderr is deliberately NOT sent to /dev/null: a failure here is
+            # non-fatal (a commit message must not break the push) but it used to
+            # be invisible, producing a plausible-looking "update X to unknown"
+            # with no trace of why. Visible in the log, still non-fatal.
             git commit -m "chore: update $PLUGIN to $NEW_VERSION"
           else
             git commit -m "chore: sync marketplace.json plugin versions"
@@ -238,12 +297,16 @@ jobs:
           fi
 
       - name: Summary
+        env:
+          # Untrusted on repository_dispatch — never interpolated into script text.
+          EVENT_NAME: ${{ github.event_name }}
+          PAYLOAD_PLUGIN: ${{ github.event.client_payload.plugin }}
         run: |
           echo "## Version Update Summary" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Trigger:** ${{ github.event_name }}" >> $GITHUB_STEP_SUMMARY
-          if [ "${{ github.event_name }}" = "repository_dispatch" ]; then
-            echo "**Plugin:** ${{ github.event.client_payload.plugin }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Trigger:** $EVENT_NAME" >> $GITHUB_STEP_SUMMARY
+          if [ "$EVENT_NAME" = "repository_dispatch" ]; then
+            echo "**Plugin:** $PAYLOAD_PLUGIN" >> $GITHUB_STEP_SUMMARY
           fi
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### marketplace.json" >> $GITHUB_STEP_SUMMARY
