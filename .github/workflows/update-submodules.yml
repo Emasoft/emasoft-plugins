@@ -210,9 +210,18 @@ jobs:
             # a concurrent writer rewrote the same marker block, which a human
             # should look at rather than a retry loop paper over.
             if ! git pull --rebase origin main; then
-              git rebase --abort || true
-              echo "::error::rebase conflict against origin/main — resolve by hand"
-              exit 1
+              # Discriminate the two failure kinds: `git rebase --abort` succeeds
+              # ONLY when a rebase is actually in progress, i.e. a real content
+              # conflict. Anything else (network, auth, unrelated histories) left
+              # no rebase to abort and is exactly what this retry loop is for —
+              # failing hard there would turn the most common transient case into
+              # a red job.
+              if git rebase --abort 2>/dev/null; then
+                echo "::error::rebase conflict against origin/main — resolve by hand"
+                exit 1
+              fi
+              echo "pull failed with no rebase in progress (transient) — retrying"
+              continue
             fi
             python3 scripts/render_readme_table.py
             if ! git diff --quiet -- README.md; then
