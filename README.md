@@ -14,6 +14,7 @@ A collection of high-quality Claude Code plugins for multi-agent development wor
 | [claude-plugins-validation](https://github.com/Emasoft/claude-plugins-validation) | 5.22.0 | Developer Tools | Comprehensive validation suite for Claude Code plugins, marketplaces, hooks, skills, and MCP servers. Includes 17 Python validators, 2 expert agents, and 190+ validation rules. |
 | [code-auditor-agent](https://github.com/Emasoft/code-auditor-agent) | 4.4.1 | Developer Tools | Four-phase PR review pipeline and full codebase audit pipeline for Claude Code. PR review: code correctness swarm, claim verification, skeptical external review, security analysis with deduplication. Codebase audit: file inventory, grep triage, parallel discovery swarm, verification, gap-fill, consolidation, TODO generation, and optional fix loop. |
 | [emasoft-agents-discipline](https://github.com/Emasoft/emasoft-agents-discipline) | 1.0.1 | Workflow | Delegation and completion discipline for substantial autonomous agent work: a unit-count gate with a DELEGATION.md ledger and one fresh subagent per unit, plus acceptance gates with an approval-bound checker, Depth Tree decomposition, and an optional Stop hook so no leaf lands half-done. |
+| [emasoft-apple-documentation-plugin](https://github.com/Emasoft/emasoft-apple-documentation-plugin) | 2.0.0 | Developer Tools | Apple Developer Documentation for Claude Code: search iOS/macOS/SwiftUI/UIKit docs, WWDC videos, Swift/Objective-C APIs and code examples through a bundled MCP server |
 | [emasoft-chat-history](https://github.com/Emasoft/emasoft-chat-history) | 1.1.7 | Workflow | Exports current session segment (since last compaction) with system-reminder stripping -- main conversation, subagent transcripts, sidechains, and debug logs in structured markdown. |
 | [emasoft-universal-clipboard](https://github.com/Emasoft/emasoft-universal-clipboard) | 1.0.2 | Workflow | Cross-platform clipboard operations for Claude Code agents. Native macOS/Windows/WSL support plus Linux scripts with Wayland, X11, and history tracking. |
 | [llm-externalizer](https://github.com/Emasoft/llm-externalizer-plugin) | 13.6.0 | Developer Tools | MCP server that offloads bounded LLM tasks from Claude Code to cheaper local (LM Studio, Ollama, vLLM, llama.cpp) or remote (OpenRouter) models. Profile-based configuration with ensemble mode, auto-batching, and secret scanning. |
@@ -22,7 +23,7 @@ A collection of high-quality Claude Code plugins for multi-agent development wor
 | [rechecker-plugin](https://github.com/Emasoft/rechecker-plugin) | 3.3.7 | Developer Tools | Automatically reviews and fixes Claude's code changes using a separate Claude instance in a git worktree after commits. Two-phase pipeline: code correctness (Phase 1) then functionality verification (Phase 2). |
 | [token-reporter](https://github.com/Emasoft/token-reporter-plugin) | 1.11.2 | Developer Tools | Per-operation token usage reporter for Claude Code. Shows token counts, cost estimates, tool attribution, cache efficiency, duration, bash commands, web fetches, and file activity when agents complete. Only outputs in debug mode (claude --debug). |
 
-*12 plugins · last generated: 2026-09-29*
+*13 plugins · last generated: 2026-10-01*
 
 <!-- PLUGIN-VERSIONS-END -->
 

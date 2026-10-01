@@ -345,6 +345,35 @@
         "skills"
       ],
       "category": "workflow"
+    },
+    {
+      "name": "emasoft-apple-documentation-plugin",
+      "source": {
+        "source": "github",
+        "repo": "Emasoft/emasoft-apple-documentation-plugin"
+      },
+      "description": "Apple Developer Documentation for Claude Code: search iOS/macOS/SwiftUI/UIKit docs, WWDC videos, Swift/Objective-C APIs and code examples through a bundled MCP server",
+      "version": "2.0.0",
+      "author": {
+        "name": "Emasoft",
+        "email": "713559+Emasoft@users.noreply.github.com"
+      },
+      "repository": "https://github.com/Emasoft/emasoft-apple-documentation-plugin",
+      "license": "MIT",
+      "keywords": [
+        "claude-code",
+        "mcp",
+        "apple",
+        "developer-documentation",
+        "ios",
+        "macos",
+        "swift",
+        "objective-c",
+        "api-search",
+        "sample-code",
+        "wwdc"
+      ],
+      "category": "developer-tools"
     }
   ]
 }
