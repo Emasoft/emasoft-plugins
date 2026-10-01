@@ -353,7 +353,7 @@
         "repo": "Emasoft/emasoft-apple-documentation-plugin"
       },
       "description": "Apple Developer Documentation for Claude Code: search iOS/macOS/SwiftUI/UIKit docs, WWDC videos, Swift/Objective-C APIs and code examples through a bundled MCP server",
-      "version": "2.1.1",
+      "version": "2.1.2",
       "author": {
         "name": "Emasoft",
         "email": "713559+Emasoft@users.noreply.github.com"
