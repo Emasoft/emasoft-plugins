@@ -23,7 +23,7 @@ A collection of high-quality Claude Code plugins for multi-agent development wor
 | [rechecker-plugin](https://github.com/Emasoft/rechecker-plugin) | 3.3.7 | Developer Tools | Automatically reviews and fixes Claude's code changes using a separate Claude instance in a git worktree after commits. Two-phase pipeline: code correctness (Phase 1) then functionality verification (Phase 2). |
 | [token-reporter](https://github.com/Emasoft/token-reporter-plugin) | 1.11.2 | Developer Tools | Per-operation token usage reporter for Claude Code. Shows token counts, cost estimates, tool attribution, cache efficiency, duration, bash commands, web fetches, and file activity when agents complete. Only outputs in debug mode (claude --debug). |
 
-*13 plugins · last generated: 2026-10-01*
+*13 plugins · last generated: 2026-10-17*
 
 <!-- PLUGIN-VERSIONS-END -->
 
