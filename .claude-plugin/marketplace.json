@@ -382,7 +382,7 @@
         "repo": "Emasoft/mods-expert-developer-plugin"
       },
       "description": "Expert agent plus 60 preserved Claude Code documentation chapters (mods, plugins, hooks, skills, subagents, marketplaces, settings) for creating, fixing, improving and evaluating Claude Code mods and plugins.",
-      "version": "0.2.0",
+      "version": "0.2.1",
       "author": {
         "name": "Emasoft",
         "email": "713559+Emasoft@users.noreply.github.com"
