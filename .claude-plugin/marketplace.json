@@ -400,6 +400,29 @@
         "subagents"
       ],
       "category": "developer-tools"
+    },
+    {
+      "name": "agentlenspro-review-mod",
+      "source": {
+        "source": "github",
+        "repo": "Emasoft/agentlenspro-review-mod"
+      },
+      "description": "Claude Code mod: the harness itself runs the adversarial REVIEW (and, for a proposal, the MEASUREMENT) of every turn that changed something, via $.model.fork, and blocks the stop on blockers; interrupted turns are reviewed too. Needs the agentlenspro CLI.",
+      "version": "0.2.0",
+      "author": {
+        "name": "Emasoft",
+        "email": "713559+Emasoft@users.noreply.github.com"
+      },
+      "repository": "https://github.com/Emasoft/agentlenspro-review-mod",
+      "license": "MIT",
+      "keywords": [
+        "claude-code",
+        "mods",
+        "review",
+        "adversarial-review",
+        "hooks"
+      ],
+      "category": "developer-tools"
     }
   ]
 }
