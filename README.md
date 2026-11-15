@@ -9,6 +9,7 @@ A collection of high-quality Claude Code plugins for multi-agent development wor
 
 | Plugin | Version | Category | Description |
 |--------|---------|----------|-------------|
+| [agentlenspro-review-mod](https://github.com/Emasoft/agentlenspro-review-mod) | 0.7.7 | Developer Tools | Claude Code mod: the harness itself runs the adversarial REVIEW (and, for a proposal, the MEASUREMENT) of every turn that changed something, via $.model.fork, and blocks the stop on blockers; interrupted turns are reviewed too. Needs the agentlenspro CLI. |
 | [claude-menu-system](https://github.com/Emasoft/claude-menu-system) | 0.2.2 | Developer Tools | Universal terminal-menu system for Claude Code plugins. Any agent invokes scripts/menu_write.py via Bash (~25ms) to render a JSON menu spec to a tempfile; a bundled Stop hook emits it as systemMessage at main-session turn end — the menu appears in the user terminal exactly when they can type a reply. No subagent fork, no extended-thinking overhead, no token cost to the orchestrator. |
 | [claude-plugins-management](https://github.com/Emasoft/claude-plugins-management) | 1.2.15 | Developer Tools | CLI plugin for installing, validating, auditing, searching, and managing Claude Code plugins from local sources or GitHub marketplaces. Includes 14 slash commands, an autonomous agent, CI/CD validation, Claude CLI validation, security audit, and 30+ checks. |
 | [claude-plugins-validation](https://github.com/Emasoft/claude-plugins-validation) | 5.23.0 | Developer Tools | Comprehensive validation suite for Claude Code plugins, marketplaces, hooks, skills, and MCP servers. Includes 17 Python validators, 2 expert agents, and 190+ validation rules. |
@@ -24,7 +25,7 @@ A collection of high-quality Claude Code plugins for multi-agent development wor
 | [rechecker-plugin](https://github.com/Emasoft/rechecker-plugin) | 3.3.7 | Developer Tools | Automatically reviews and fixes Claude's code changes using a separate Claude instance in a git worktree after commits. Two-phase pipeline: code correctness (Phase 1) then functionality verification (Phase 2). |
 | [token-reporter](https://github.com/Emasoft/token-reporter-plugin) | 1.11.2 | Developer Tools | Per-operation token usage reporter for Claude Code. Shows token counts, cost estimates, tool attribution, cache efficiency, duration, bash commands, web fetches, and file activity when agents complete. Only outputs in debug mode (claude --debug). |
 
-*14 plugins · last generated: 2026-11-03*
+*15 plugins*
 
 <!-- PLUGIN-VERSIONS-END -->
 

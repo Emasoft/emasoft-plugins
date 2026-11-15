@@ -19,7 +19,6 @@ Exit codes:
 import argparse
 import json
 import sys
-from datetime import date
 from pathlib import Path
 
 START = "<!-- PLUGIN-VERSIONS-START -->"
@@ -66,7 +65,11 @@ def render(plugins: list[dict]) -> str:
         lines.append(
             f"| {label} | {cell(p.get('version', '?'))} | {category} | {cell(p.get('description', ''))} |"
         )
-    lines += ["", f"*{len(plugins)} plugins · last generated: {date.today().isoformat()}*", "", END]
+    # No generation date in the output: it made the table a function of the day it
+    # was rendered, so `--check` failed the morning after every regenerate even
+    # though marketplace.json had not changed. The block must depend only on
+    # marketplace.json for the CI gate (and the bump workflow) to be deterministic.
+    lines += ["", f"*{len(plugins)} plugins*", "", END]
     return "\n".join(lines)
 
 
