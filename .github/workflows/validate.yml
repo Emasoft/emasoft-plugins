@@ -6,14 +6,18 @@ on:
   pull_request:
     branches: [main, master]
 
+permissions: {}
+
 jobs:
   validate:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v7
         with:
           python-version: '3.12'
 
@@ -89,9 +93,11 @@ jobs:
           "
 
       - name: README table matches marketplace.json
-        # Makes --check a real gate rather than an unused flag: if anyone hand-edits
-        # the generated block, or a manifest change lands without a regenerate, CI
-        # fails here instead of the drift going unnoticed for months.
+        # A real gate on pull requests only. On a push to main the table is
+        # regenerated and committed by the render-readme job below: release tooling
+        # bumps marketplace.json on main directly, so gating there just reddened
+        # every release.
+        if: github.event_name == 'pull_request'
         run: |
           python3 scripts/render_readme_table.py --check || {
             echo "::error::README table is out of date — run: python3 scripts/render_readme_table.py && git add README.md"
@@ -106,3 +112,55 @@ jobs:
           else
             echo "No scripts/ directory to lint"
           fi
+
+  # marketplace.json is bumped straight on main by something other than Update Versions
+  # (source unconfirmed: owner-identity commits, ~15 s after the plugin repo commit, no PR),
+  # so README.md was left stale after every release and the gate above could never
+  # go green on main. The README table is derived data, so on push it is regenerated
+  # and committed here instead of being gated. MARKETPLACE_PAT (not GITHUB_TOKEN) is
+  # required: the branch ruleset demands a PR for everything except the admin role,
+  # which GITHUB_TOKEN is not. Its OWN concurrency group, not update-versions: GitHub keeps
+  # one pending run per group, so sharing it would let a README job replace a queued plugin
+  # update. A newer render supersedes an older one (it renders from the branch tip), and
+  # Update Versions retries its push with pull --rebase and re-renders, so the two
+  # writers tolerate each other.
+  render-readme:
+    if: github.event_name == 'push'
+    needs: validate
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    concurrency:
+      group: render-readme
+      cancel-in-progress: true
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.ref }}
+          token: ${{ secrets.MARKETPLACE_PAT }}
+
+      - name: Regenerate README plugin table and push
+        env:
+          BRANCH: ${{ github.ref_name }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          for attempt in 1 2 3; do
+            python3 scripts/render_readme_table.py
+            if git diff --quiet -- README.md; then
+              echo "README table already current"
+              exit 0
+            fi
+            git add README.md
+            git commit -m "chore: regenerate README plugin table from marketplace.json"
+            if git push origin "HEAD:$BRANCH"; then
+              echo "Push succeeded on attempt $attempt"
+              exit 0
+            fi
+            # A concurrent push moved the branch: drop our commit and render again
+            # from the new tip instead of replaying a table built from a stale manifest.
+            git fetch origin "$BRANCH"
+            git reset --hard "origin/$BRANCH"
+          done
+          echo "::error::README regenerate push failed after 3 attempts"
+          exit 1
