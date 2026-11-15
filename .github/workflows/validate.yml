@@ -119,8 +119,11 @@ jobs:
   # go green on main. The README table is derived data, so on push it is regenerated
   # and committed here instead of being gated. MARKETPLACE_PAT (not GITHUB_TOKEN) is
   # required: the branch ruleset demands a PR for everything except the admin role,
-  # which GITHUB_TOKEN is not. Same concurrency group as update-submodules.yml so the
-  # two writers to the marker block never interleave.
+  # which GITHUB_TOKEN is not. Its OWN concurrency group, not update-versions: GitHub keeps
+  # one pending run per group, so sharing it would let a README job replace a queued plugin
+  # update. A newer render supersedes an older one (it renders from the branch tip), and
+  # Update Versions retries its push with pull --rebase and re-renders, so the two
+  # writers tolerate each other.
   render-readme:
     if: github.event_name == 'push'
     needs: validate
@@ -128,8 +131,8 @@ jobs:
     permissions:
       contents: read
     concurrency:
-      group: update-versions
-      cancel-in-progress: false
+      group: render-readme
+      cancel-in-progress: true
     steps:
       - uses: actions/checkout@v7
         with:
