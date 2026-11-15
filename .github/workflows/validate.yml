@@ -113,8 +113,8 @@ jobs:
             echo "No scripts/ directory to lint"
           fi
 
-  # Plugin release tooling bumps marketplace.json straight on main (author is the
-  # owner, ~15 s after the plugin repo's own commit, no PR and no repository_dispatch),
+  # marketplace.json is bumped straight on main by something other than Update Versions
+  # (source unconfirmed: owner-identity commits, ~15 s after the plugin repo commit, no PR),
   # so README.md was left stale after every release and the gate above could never
   # go green on main. The README table is derived data, so on push it is regenerated
   # and committed here instead of being gated. MARKETPLACE_PAT (not GITHUB_TOKEN) is

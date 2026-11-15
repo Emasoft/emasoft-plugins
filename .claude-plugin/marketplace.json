@@ -176,36 +176,6 @@
       "category": "developer-tools"
     },
     {
-      "name": "claude-plugins-management",
-      "source": {
-        "source": "github",
-        "repo": "Emasoft/claude-plugins-management"
-      },
-      "description": "CLI plugin for installing, validating, auditing, searching, and managing Claude Code plugins from local sources or GitHub marketplaces. Includes 14 slash commands, an autonomous agent, CI/CD validation, Claude CLI validation, security audit, and 30+ checks.",
-      "version": "1.2.15",
-      "author": {
-        "name": "Emasoft",
-        "email": "713559+Emasoft@users.noreply.github.com"
-      },
-      "repository": "https://github.com/Emasoft/claude-plugins-management",
-      "license": "MIT",
-      "keywords": [
-        "plugins",
-        "installer",
-        "validator",
-        "marketplace",
-        "management",
-        "hooks",
-        "skills",
-        "mcp",
-        "doctor",
-        "search",
-        "security",
-        "audit"
-      ],
-      "category": "developer-tools"
-    },
-    {
       "name": "token-reporter",
       "source": {
         "source": "github",
